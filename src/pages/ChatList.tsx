@@ -1,107 +1,10 @@
-// // src/pages/ChatList.tsx
-// import React from "react";
-// import { Container, AppBar, Toolbar, Typography, IconButton, Box, Fab, List, ListItem, ListItemAvatar, Avatar, ListItemText } from "@mui/material";
-// import AddIcon from "@mui/icons-material/Add";
-// import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-// import { useNavigate } from "react-router-dom";
-
-// import { signOut } from "firebase/auth";
-// import { auth } from "../firebase/firebase";
-
-// interface Chat {
-//   id: string;
-//   name: string;
-//   lastMessage: string;
-//   time: string;
-//   avatar: string;
-// }
-
-// const ChatList = () => {
-//   const navigate = useNavigate();
-
-//   const handleLogout = async () => {
-//     await signOut(auth);
-//     navigate("/login");
-//   };
-
-//   // Placeholder for chat list
-//   const chats: Chat[] = [
-//     {
-//       id: "chat-1",
-//       name: "John Doe",
-//       lastMessage: "Hey, how's it going?",
-//       time: "10:45 AM",
-//       avatar: "https://mui.com/static/images/avatar/1.jpg",
-//     },
-//     {
-//       id: "chat-2",
-//       name: "Jane Smith",
-//       lastMessage: "See you later!",
-//       time: "9:30 AM",
-//       avatar: "https://mui.com/static/images/avatar/2.jpg",
-//     },
-//   ];
-
-//   return (
-//     <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
-//       <AppBar position="static">
-//         <Toolbar>
-//           <Typography variant="h6" sx={{ flexGrow: 1 }}>
-//             Chats
-//           </Typography>
-//           <IconButton color="inherit" onClick={handleLogout}>
-//             <ExitToAppIcon />
-//           </IconButton>
-//         </Toolbar>
-//       </AppBar>
-//       <Container sx={{ flexGrow: 1, overflowY: "auto", p: 0, width: "100%", maxWidth: "430px" }}>
-//         <List>
-//           {chats.map((chat) => (
-//             <ListItem component="button" key={chat.id} onClick={() => navigate(`/chat/${chat.id}`)}>
-//               <ListItemAvatar>
-//                 <Avatar src={chat.avatar} />
-//               </ListItemAvatar>
-//               <ListItemText
-//                 primary={chat.name}
-//                 secondary={
-//                   <React.Fragment>
-//                     <Typography component="span" variant="body2" color="text.primary">
-//                       {chat.lastMessage}
-//                     </Typography>
-//                     {" - "}
-//                     {chat.time}
-//                   </React.Fragment>
-//                 }
-//               />
-//             </ListItem>
-//           ))}
-//         </List>
-//         <Fab
-//           color="secondary"
-//           aria-label="add"
-//           sx={{
-//             position: "fixed",
-//             bottom: 16,
-//             right: 16,
-//           }}
-//         >
-//           <AddIcon />
-//         </Fab>
-//       </Container>
-//     </Box>
-//   );
-// };
-
-// export default ChatList;
-
 // src/pages/ChatList.tsx
-import React, { useState, useEffect } from "react";
-import { AppBar, Toolbar, Typography, IconButton, Box, List, ListItem, ListItemAvatar, Avatar, ListItemText, CircularProgress } from "@mui/material";
-import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import { AppBar, Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, List, ListItem, ListItemAvatar, ListItemText, Menu, MenuItem, Toolbar, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { signOut } from "firebase/auth";
-import { collection, onSnapshot, query, where, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { auth, db } from "../firebase/firebase";
 
@@ -119,8 +22,11 @@ interface AppUser {
 const ChatList = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  console.log("🚀  ~ ChatList  ~ currentUser:", currentUser?.photoURL);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -167,18 +73,33 @@ const ChatList = () => {
     // Create a consistent chatId by sorting the two UIDs
     const chatID = [currentUser.uid, otherUser.id].sort().join("-");
     navigate(`/chat/${chatID}`);
+    // Removed unused setAnchorEl function
+    // throw new Error("Function not implemented.");
   };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "100vh", margin: "0 auto", maxWidth: "500px", width: "100%" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "calc(100vh - 150px)", margin: "0 auto", maxWidth: "500px", width: "100%" }}>
       <AppBar position="static" sx={{ border: "1px solid #ccc" }}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             New Chat {currentUser?.displayName ? `- ${currentUser.displayName}` : ""}
           </Typography>
-          <IconButton color="inherit" onClick={handleLogout}>
-            <ExitToAppIcon />
-          </IconButton>
+          {/* Profile Avatar with Menu */}
+          <Box>
+            <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)} size="large" sx={{ p: 0 }}>
+              <Avatar src={currentUser?.photoURL || ""} alt={currentUser?.displayName || ""} />
+            </IconButton>
+            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)} anchorOrigin={{ vertical: "bottom", horizontal: "right" }} transformOrigin={{ vertical: "top", horizontal: "right" }}>
+              <MenuItem
+                onClick={() => {
+                  setAnchorEl(null);
+                  setConfirmOpen(true);
+                }}
+              >
+                Logout
+              </MenuItem>
+            </Menu>
+          </Box>
         </Toolbar>
       </AppBar>
       {loading ? (
@@ -221,6 +142,29 @@ const ChatList = () => {
           </List>
         </Box>
       )}
+
+      {/* Confirmation Dialog */}
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+        <DialogTitle>Confirm Logout</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to logout?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)} color="primary">
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              setConfirmOpen(false);
+              handleLogout();
+            }}
+            color="error"
+            variant="contained"
+          >
+            Logout
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

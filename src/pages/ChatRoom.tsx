@@ -5,10 +5,10 @@ import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTime
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { useAuth } from "../context/AuthContext";
-import { db } from "../firebase/firebase";
 import MessageBubble from "../components/MessageBubble";
 import MessageInput from "../components/MessageInput";
+import { useAuth } from "../context/AuthContext";
+import { db } from "../firebase/firebase";
 
 interface Message {
   id: string;
@@ -71,22 +71,34 @@ const ChatRoom = () => {
     });
   };
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const APP_BAR_HEIGHT = 64; // Adjust for mobile if needed
+  const INPUT_HEIGHT = 60; // Height of MessageInput
+
   return (
     <Box
       sx={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
+        position: "relative",
         width: "100%",
         maxWidth: "500px",
         mx: "auto",
         border: "1px solid #ccc",
+        height: "100%", // Let body/html control height
       }}
     >
+      {/* Fixed AppBar */}
       <AppBar
-        position="static"
+        position="fixed"
         sx={{
-          border: "1px solid #ccc",
+          top: 0,
+          left: "50%",
+          transform: "translateX(-50%)",
+          maxWidth: "500px",
+          width: "100%",
+          borderBottom: "1px solid #ccc",
         }}
       >
         <Toolbar>
@@ -99,25 +111,34 @@ const ChatRoom = () => {
           </Box>
         </Toolbar>
       </AppBar>
+
+      {/* Scrollable messages area */}
       <Box
         sx={{
-          flexGrow: 1,
+          position: "absolute",
+          top: APP_BAR_HEIGHT,
+          bottom: INPUT_HEIGHT,
+          left: 0,
+          right: 0,
           overflowY: "auto",
           p: 2,
           display: "flex",
           flexDirection: "column",
           gap: 1,
+          height: "calc(100vh - 124px)",
+          backgroundColor: "aliceblue",
+          "@media (max-width:600px)": {
+            height: "calc(100vh - 124px)",
+            p: 1,
+          },
+          "@media (min-width:601px)": {
+            height: "calc(100vh - 200px)",
+            p: 2,
+          },
         }}
       >
         {loading ? (
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              height: "100%",
-            }}
-          >
+          <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
             <CircularProgress />
           </Box>
         ) : messages.length === 0 ? (
@@ -129,7 +150,22 @@ const ChatRoom = () => {
         )}
         <div ref={messagesEndRef} />
       </Box>
-      <MessageInput onSendMessage={handleSendMessage} />
+
+      {/* Fixed input bar */}
+      <Box
+        sx={{
+          position: "fixed",
+          bottom: 0,
+          left: "50%",
+          transform: "translateX(-50%)",
+          maxWidth: "500px",
+          width: "100%",
+          borderTop: "1px solid #ccc",
+          backgroundColor: "#fff",
+        }}
+      >
+        <MessageInput onSendMessage={handleSendMessage} />
+      </Box>
     </Box>
   );
 };
