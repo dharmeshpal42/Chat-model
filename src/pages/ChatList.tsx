@@ -22,7 +22,6 @@ interface AppUser {
 const ChatList = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  console.log("🚀  ~ ChatList  ~ currentUser:", currentUser?.photoURL);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -51,7 +50,6 @@ const ChatList = () => {
           })
           .filter((user): user is AppUser => user?.id !== currentUser.uid);
         setLoading(false);
-        console.log("🚀  ~ fetchUsers  ~ usersData:", usersData);
         setUsers(usersData);
       } catch (error) {
         setLoading(false);
@@ -78,7 +76,7 @@ const ChatList = () => {
   };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "calc(100vh - 150px)", margin: "0 auto", maxWidth: "500px", width: "100%" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", margin: "0 auto", height: "100vh", maxWidth: "500px", width: "100%" }}>
       <AppBar position="static" sx={{ border: "1px solid #ccc" }}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
