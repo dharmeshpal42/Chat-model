@@ -1,26 +1,62 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+// src/App.tsx
+import React, { ReactNode } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+import ChatList from "./pages/ChatList";
+import ChatRoom from "./pages/ChatRoom";
+import { Box, CircularProgress } from "@mui/material";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+
+const theme = createTheme({
+  palette: {
+    primary: { main: "#1976d2" },
+    secondary: { main: "#4caf50" },
+  },
+});
+
+interface PrivateRouteProps {
+  children: ReactNode;
 }
+
+const PrivateRoute = ({ children }: PrivateRouteProps) => {
+  const { currentUser } = useAuth();
+  return currentUser ? <>{children}</> : <Navigate to="/login" />;
+};
+
+const App = () => {
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Router>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route
+              path="/"
+              element={
+                <PrivateRoute>
+                  <ChatList />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/chat/:chatId"
+              element={
+                <PrivateRoute>
+                  <ChatRoom />
+                </PrivateRoute>
+              }
+            />
+          </Routes>
+        </AuthProvider>
+      </Router>
+    </ThemeProvider>
+  );
+};
 
 export default App;
