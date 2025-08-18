@@ -167,11 +167,11 @@ const ChatList = () => {
         </Toolbar>
       </AppBar>
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", p: 4, height: "90vh" }}>
           <CircularProgress />
         </Box>
       ) : (
-        <Box sx={{ flexGrow: 1, overflowY: "auto", width: "100%", maxWidth: "500px", mx: "auto", p: 0, border: "1px solid #ccc" }}>
+        <Box sx={{ overflowY: "auto", width: "100%", maxWidth: "500px", mx: "auto", p: 0, height: "90vh" }}>
           <List
             sx={{
               padding: { xs: "0 15px", sm: "0 40px" },
@@ -222,6 +222,14 @@ const ChatList = () => {
           </List>
         </Box>
       )}
+
+      <Stack justifyContent={"end"} alignItems={"end"}>
+        <Typography variant="caption" color="text.secondary" align="center" sx={{ mt: 2 }}>
+          © {new Date().getFullYear()} All rights reserved.
+          <br />
+          Develop by <b>Dharmesh Pal</b>
+        </Typography>
+      </Stack>
 
       {/* Confirmation Dialog */}
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
