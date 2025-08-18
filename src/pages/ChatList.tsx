@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { signOut } from "firebase/auth";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, query, where } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { auth, db } from "../firebase/firebase";
 
@@ -26,9 +26,13 @@ const ChatList = () => {
   const [loading, setLoading] = useState(true);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [unseenMessageCounts, setUnseenMessageCounts] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
     const fetchUsers = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "users"));
@@ -58,6 +62,40 @@ const ChatList = () => {
     };
 
     fetchUsers();
+
+    // Listen for messages from all users to the current user
+    const unsubscribes: (() => void)[] = [];
+    const usersCollectionRef = collection(db, "users");
+    const usersUnsubscribe = onSnapshot(usersCollectionRef, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added" || change.type === "modified") {
+          if (change.doc.id !== currentUser.uid) {
+            // Create a consistent chatId
+            const chatID = [currentUser.uid, change.doc.id].sort().join("-");
+            const messagesCollectionRef = collection(db, "chats", chatID, "messages");
+            const q = query(messagesCollectionRef, where("readBy", "!=", [currentUser.uid]));
+
+            // Listen for unread messages in each chat
+            const messagesUnsubscribe = onSnapshot(q, (messagesSnapshot) => {
+              const unseenCount = messagesSnapshot.docs.filter((doc) => {
+                const messageData = doc.data();
+                // Ensure the message is sent by the other user and not yet read by the current user
+                return messageData.senderId === change.doc.id && !messageData.readBy.includes(currentUser.uid);
+              }).length;
+
+              setUnseenMessageCounts((prevCounts) => ({
+                ...prevCounts,
+                [change.doc.id]: unseenCount,
+              }));
+            });
+            unsubscribes.push(messagesUnsubscribe);
+          }
+        }
+      });
+    });
+    unsubscribes.push(usersUnsubscribe);
+
+    return () => unsubscribes.forEach((unsub) => unsub());
   }, [currentUser]);
 
   const handleLogout = async () => {
@@ -76,10 +114,16 @@ const ChatList = () => {
   };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", margin: "0 auto", height: "100vh", maxWidth: "500px", width: "100%" }}>
-      <AppBar position="static" sx={{ border: "1px solid #ccc" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", margin: "0 auto", height: "calc(100vh - 20px)", maxWidth: "500px", width: "100%" }}>
+      <AppBar position="static" sx={{ borderBottomLeftRadius: "10px", borderBottomRightRadius: "10px" }}>
         <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+          <Typography
+            variant="h6"
+            sx={{
+              flexGrow: 1,
+              fontSize: { xs: "18px", sm: "inherit" },
+            }}
+          >
             New Chat {currentUser?.displayName ? `- ${currentUser.displayName}` : ""}
           </Typography>
           {/* Profile Avatar with Menu */}
@@ -108,7 +152,7 @@ const ChatList = () => {
         <Box sx={{ flexGrow: 1, overflowY: "auto", width: "100%", maxWidth: "500px", mx: "auto", p: 0, border: "1px solid #ccc" }}>
           <List
             sx={{
-              padding: "0 40px",
+              padding: { xs: "0 15px", sm: "0 40px" },
             }}
           >
             {users.length === 0 ? (
@@ -130,10 +174,26 @@ const ChatList = () => {
                   <ListItemAvatar>
                     <Avatar src={user.avatar} />
                   </ListItemAvatar>
-                  <ListItemText
-                    primary={user.name}
-                    secondary={user.email} // Using email as a placeholder
-                  />
+                  <ListItemText primary={user.name} title={user.email} />
+                  <Box sx={{ ml: "auto", display: "flex", alignItems: "center" }}>
+                    {unseenMessageCounts[user.id] > 0 && (
+                      <Box
+                        sx={{
+                          backgroundColor: "primary.main",
+                          color: "white",
+                          borderRadius: "50%",
+                          width: "20px",
+                          height: "20px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "12px",
+                        }}
+                      >
+                        {unseenMessageCounts[user.id]}
+                      </Box>
+                    )}
+                  </Box>
                 </ListItem>
               ))
             )}

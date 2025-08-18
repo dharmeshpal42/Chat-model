@@ -1,7 +1,7 @@
 // src/pages/ChatRoom.tsx
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { AppBar, Avatar, Box, CircularProgress, IconButton, Toolbar, Typography } from "@mui/material";
-import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, Timestamp } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, Timestamp, writeBatch } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -17,6 +17,7 @@ interface Message {
   timestamp: Timestamp;
   avatar?: string;
   senderName?: string;
+  readBy: string[]; // Add a readBy field
 }
 
 const ChatRoom = () => {
@@ -26,39 +27,82 @@ const ChatRoom = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [chatName, setChatName] = useState("");
+  const [chatPhotoUrl, setChatPhotoUrl] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!chatId) return;
-
-    const otherUserId = chatId.split("-").find((id) => id !== currentUser?.uid);
-    const fetchChatInfo = async () => {
-      if (otherUserId) {
-        const userDoc = await getDoc(doc(db, "users", otherUserId));
-        if (userDoc.exists()) {
-          setChatName(userDoc.data().name);
-        }
-      }
-    };
-    fetchChatInfo();
-
-    const q = query(collection(db, "chats", chatId, "messages"), orderBy("timestamp"));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedMessages: Message[] = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Message[];
-      setMessages(fetchedMessages);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [chatId, currentUser]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (!chatId || !currentUser?.uid) return;
+
+    let unsubscribeMessages: (() => void) | undefined;
+
+    const fetchChatInfo = async () => {
+      const otherUserId = chatId.split("-").find((id) => id !== currentUser?.uid);
+      if (otherUserId) {
+        const userDoc = await getDoc(doc(db, "users", otherUserId));
+        if (userDoc.exists()) {
+          setChatName(userDoc.data().name);
+          setChatPhotoUrl(userDoc.data().avatar);
+        }
+      }
+    };
+
+    fetchChatInfo();
+
+    // Set up a real-time listener for messages in the chat
+    const messagesQuery = query(collection(db, "chats", chatId, "messages"), orderBy("timestamp"));
+
+    unsubscribeMessages = onSnapshot(messagesQuery, async (snapshot) => {
+      const allMessages: Message[] = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          senderId: data.senderId,
+          text: data.text,
+          timestamp: data.timestamp,
+          avatar: data.avatar,
+          senderName: data.senderName,
+          readBy: data.readBy || [],
+        };
+      });
+
+      // Filter messages to show only the ones from the last 24 hours
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const filtered = allMessages.filter((msg) => msg.timestamp?.toDate() > twentyFourHoursAgo);
+      setMessages(filtered);
+      setLoading(false);
+
+      // --- NEW LOGIC TO MARK MESSAGES AS READ ---
+      const unreadMessages = allMessages.filter((msg) => msg.senderId !== currentUser.uid && !msg?.readBy.includes(currentUser.uid));
+
+      if (unreadMessages.length > 0) {
+        const batch = writeBatch(db);
+        unreadMessages.forEach((msg) => {
+          const messageRef = doc(db, "chats", chatId, "messages", msg.id);
+          batch.update(messageRef, {
+            readBy: [...msg.readBy, currentUser.uid],
+          });
+        });
+        await batch.commit().catch((error) => {
+          console.error("Failed to update message read status:", error);
+        });
+      }
+      // --- END OF NEW LOGIC ---
+    });
+
+    // Re-apply 24h filter every 1 minute
+    const interval = setInterval(() => {
+      setMessages((prev) => prev.filter((msg) => msg.timestamp?.toDate() > new Date(Date.now() - 24 * 60 * 60 * 1000)));
+    }, 60 * 1000);
+
+    return () => {
+      if (unsubscribeMessages) unsubscribeMessages();
+      clearInterval(interval);
+    };
+  }, [chatId, currentUser?.uid]);
 
   const handleSendMessage = async (text: string) => {
     if (text.trim() === "" || !currentUser) return;
@@ -68,15 +112,12 @@ const ChatRoom = () => {
       timestamp: serverTimestamp(),
       avatar: currentUser.photoURL,
       senderName: currentUser.displayName,
+      readBy: [currentUser.uid],
     });
   };
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const APP_BAR_HEIGHT = 64; // Adjust for mobile if needed
-  const INPUT_HEIGHT = 60; // Height of MessageInput
+  const APP_BAR_HEIGHT = 64;
+  const INPUT_HEIGHT = 60;
 
   return (
     <Box
@@ -86,10 +127,9 @@ const ChatRoom = () => {
         maxWidth: "500px",
         mx: "auto",
         border: "1px solid #ccc",
-        height: "100%", // Let body/html control height
+        height: "100%",
       }}
     >
-      {/* Fixed AppBar */}
       <AppBar
         position="fixed"
         sx={{
@@ -98,21 +138,39 @@ const ChatRoom = () => {
           transform: "translateX(-50%)",
           maxWidth: "500px",
           width: "100%",
-          borderBottom: "1px solid #ccc",
+          borderBottomLeftRadius: "10px",
+          borderBottomRightRadius: "10px",
         }}
       >
-        <Toolbar>
-          <IconButton color="inherit" onClick={() => navigate(-1)}>
+        <Toolbar
+          sx={{
+            pl: { xs: "8px", sm: 2 },
+            pr: { xs: "8px", sm: 2 },
+          }}
+        >
+          <IconButton color="inherit" onClick={() => navigate(-1)} size="small">
             <ArrowBackIcon />
           </IconButton>
-          <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
-            <Avatar sx={{ mr: 1 }} />
-            <Typography variant="h6">{chatName || "Chat"}</Typography>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              ml: { xs: 1, sm: 2 },
+            }}
+          >
+            <Avatar sx={{ mr: 1 }} src={chatPhotoUrl} alt={chatName} />
+            <Typography
+              variant="h6"
+              sx={{
+                fontSize: { xs: "16px", sm: "inherit" },
+              }}
+            >
+              {chatName || "Chat"}
+            </Typography>
           </Box>
         </Toolbar>
       </AppBar>
 
-      {/* Scrollable messages area */}
       <Box
         sx={{
           position: "absolute",
@@ -127,12 +185,13 @@ const ChatRoom = () => {
           gap: 1,
           height: "calc(100vh - 124px)",
           backgroundColor: "aliceblue",
+          scrollbarWidth: "none",
           "@media (max-width:600px)": {
-            height: "calc(100vh - 124px)",
+            height: "calc(100vh - 195px)",
             p: 1,
           },
           "@media (min-width:601px)": {
-            height: "calc(100vh - 200px)",
+            height: "calc(100vh - 125px)",
             p: 2,
           },
         }}
@@ -151,7 +210,6 @@ const ChatRoom = () => {
         <div ref={messagesEndRef} />
       </Box>
 
-      {/* Fixed input bar */}
       <Box
         sx={{
           position: "fixed",

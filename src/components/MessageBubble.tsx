@@ -41,7 +41,17 @@ const MessageBubble = ({ message, isOwnMessage }: MessageBubbleProps) => {
           wordBreak: "break-word",
         }}
       >
-        <Typography variant="body1">{message.text}</Typography>
+        <Typography
+          variant="body1"
+          sx={{
+            fontSize: {
+              xs: "13px", // 600px and below
+              sm: "1rem", // above 600px (default)
+            },
+          }}
+        >
+          {message.text}
+        </Typography>
         <Typography variant="caption" display="block" sx={{ textAlign: "right", fontSize: "9px", color: isOwnMessage ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.6)" }}>
           {formattedTime}
         </Typography>
