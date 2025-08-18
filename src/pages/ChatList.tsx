@@ -1,5 +1,5 @@
 // src/pages/ChatList.tsx
-import { AppBar, Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, List, ListItem, ListItemAvatar, ListItemText, Menu, MenuItem, Toolbar, Typography } from "@mui/material";
+import { AppBar, Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, List, ListItem, ListItemAvatar, ListItemText, Menu, MenuItem, Stack, Toolbar, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -7,6 +7,8 @@ import { signOut } from "firebase/auth";
 import { collection, getDocs, onSnapshot, query, where } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { auth, db } from "../firebase/firebase";
+
+import logo from "../assets/images/header-logo.png"; // Adjust the path as necessary
 
 // Define a type for a user document
 interface AppUser {
@@ -116,16 +118,36 @@ const ChatList = () => {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", margin: "0 auto", height: "calc(100vh - 20px)", maxWidth: "500px", width: "100%" }}>
       <AppBar position="static" sx={{ borderBottomLeftRadius: "10px", borderBottomRightRadius: "10px" }}>
-        <Toolbar>
-          <Typography
-            variant="h6"
-            sx={{
-              flexGrow: 1,
-              fontSize: { xs: "18px", sm: "inherit" },
-            }}
-          >
-            New Chat {currentUser?.displayName ? `- ${currentUser.displayName}` : ""}
-          </Typography>
+        <Toolbar
+          sx={{
+            padding: "10px 16px",
+          }}
+        >
+          {/* Logo and Title */}
+          <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
+            <Stack
+              alignItems={"center"}
+              justifyContent={"center"}
+              sx={{
+                width: "50px",
+                height: "50px",
+                marginRight: "10px",
+                borderRadius: "50%",
+                overflow: "hidden",
+                backgroundColor: "white",
+              }}
+            >
+              <img src={logo} alt="Logo" style={{ width: "80%", height: "80%", objectFit: "cover" }} />
+            </Stack>
+            <Typography
+              variant="h6"
+              sx={{
+                fontSize: { xs: "18px", sm: "inherit" },
+              }}
+            >
+              {currentUser?.displayName ? `${currentUser.displayName}` : ""}
+            </Typography>
+          </Box>
           {/* Profile Avatar with Menu */}
           <Box>
             <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)} size="large" sx={{ p: 0 }}>
