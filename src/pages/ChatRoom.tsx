@@ -1,14 +1,15 @@
 // src/pages/ChatRoom.tsx
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { AppBar, Avatar, Box, CircularProgress, IconButton, Toolbar, Typography } from "@mui/material";
+import { AppBar, Avatar, Box, CircularProgress, Divider, IconButton, Toolbar, Typography } from "@mui/material";
 import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, Timestamp, writeBatch } from "firebase/firestore";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import MessageBubble from "../components/MessageBubble";
 import MessageInput from "../components/MessageInput";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/firebase";
+import { format, isToday, isYesterday } from "date-fns";
 
 interface Message {
   id: string;
@@ -118,7 +119,11 @@ const ChatRoom = () => {
 
   const APP_BAR_HEIGHT = 64;
   const INPUT_HEIGHT = 60;
-
+  const getDateLabel = (date: Date) => {
+    if (isToday(date)) return "Today";
+    if (isYesterday(date)) return "Yesterday";
+    return format(date, "MMMM d, yyyy"); // e.g. August 18, 2025
+  };
   return (
     <Box
       sx={{
@@ -205,7 +210,32 @@ const ChatRoom = () => {
             Start a new conversation!
           </Typography>
         ) : (
-          messages.map((msg) => <MessageBubble key={msg.id} message={msg} isOwnMessage={msg.senderId === currentUser?.uid} />)
+          Object.entries(
+            messages.reduce((groups, msg) => {
+              const date = msg.timestamp?.toDate();
+              const dateKey = date ? format(date, "yyyy-MM-dd") : "unknown";
+              if (!groups[dateKey]) groups[dateKey] = [];
+              groups[dateKey].push(msg);
+              return groups;
+            }, {} as Record<string, Message[]>)
+          ).map(([dateKey, msgs]) => {
+            const dateLabel = getDateLabel(new Date(dateKey));
+            return (
+              <React.Fragment key={dateKey}>
+                {/* Date Divider */}
+                <Divider>
+                  <Typography variant="caption" color="text.secondary">
+                    {dateLabel}
+                  </Typography>
+                </Divider>
+
+                {/* Messages for this date */}
+                {msgs.map((msg) => (
+                  <MessageBubble key={msg.id} message={msg} isOwnMessage={msg.senderId === currentUser?.uid} />
+                ))}
+              </React.Fragment>
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </Box>
