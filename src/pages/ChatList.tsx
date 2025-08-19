@@ -75,14 +75,12 @@ const ChatList = () => {
             // Create a consistent chatId
             const chatID = [currentUser.uid, change.doc.id].sort().join("-");
             const messagesCollectionRef = collection(db, "chats", chatID, "messages");
-            const q = query(messagesCollectionRef, where("readBy", "!=", [currentUser.uid]));
-
-            // Listen for unread messages in each chat
-            const messagesUnsubscribe = onSnapshot(q, (messagesSnapshot) => {
+            // Listen for all messages in each chat and filter unread ones in code
+            const messagesUnsubscribe = onSnapshot(messagesCollectionRef, (messagesSnapshot) => {
               const unseenCount = messagesSnapshot.docs.filter((doc) => {
                 const messageData = doc.data();
                 // Ensure the message is sent by the other user and not yet read by the current user
-                return messageData.senderId === change.doc.id && !messageData.readBy.includes(currentUser.uid);
+                return messageData.senderId === change.doc.id && Array.isArray(messageData.readBy) && !messageData.readBy.includes(currentUser.uid);
               }).length;
 
               setUnseenMessageCounts((prevCounts) => ({
@@ -129,8 +127,8 @@ const ChatList = () => {
               alignItems={"center"}
               justifyContent={"center"}
               sx={{
-                width: "50px",
-                height: "50px",
+                width: "40px",
+                height: "40px",
                 marginRight: "10px",
                 borderRadius: "50%",
                 overflow: "hidden",
@@ -156,6 +154,7 @@ const ChatList = () => {
               <Avatar
                 src={currentUser?.photoURL || ""}
                 alt={currentUser?.displayName || ""}
+                title={currentUser?.displayName || ""}
                 sx={{
                   border: "2px solid white",
                 }}

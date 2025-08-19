@@ -1,10 +1,9 @@
 // src/pages/Login.tsx
+import { AppBar, Box, Button, CircularProgress, Container, TextField, Toolbar, Typography } from "@mui/material";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
-import { Container, Box, TextField, Button, Typography, AppBar, Toolbar, CircularProgress } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "../firebase/firebase";
+import { auth } from "../firebase/firebase";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -25,29 +24,29 @@ const Login = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-    setLoading(true);
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
-          name: user.displayName,
-          email: user.email,
-          avatar: user.photoURL,
-          lastSeen: serverTimestamp(),
-        },
-        { merge: true }
-      );
-      navigate("/");
-    } catch (error: any) {
-      alert(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // const handleGoogleLogin = async () => {
+  //   const provider = new GoogleAuthProvider();
+  //   setLoading(true);
+  //   try {
+  //     const result = await signInWithPopup(auth, provider);
+  //     const user = result.user;
+  //     await setDoc(
+  //       doc(db, "users", user.uid),
+  //       {
+  //         name: user.displayName,
+  //         email: user.email,
+  //         avatar: user.photoURL,
+  //         lastSeen: serverTimestamp(),
+  //       },
+  //       { merge: true }
+  //     );
+  //     navigate("/");
+  //   } catch (error: any) {
+  //     alert(error.message);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   return (
     <Container component="main" maxWidth="xs">
@@ -75,9 +74,9 @@ const Login = () => {
           <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }} disabled={loading}>
             {loading ? <CircularProgress size={24} /> : "Log In"}
           </Button>
-          <Button fullWidth variant="outlined" onClick={handleGoogleLogin} sx={{ mb: 2 }} disabled={loading}>
+          {/* <Button fullWidth variant="outlined" onClick={handleGoogleLogin} sx={{ mb: 2 }} disabled={loading}>
             Sign In with Google
-          </Button>
+          </Button> */}
           <Typography variant="body2" align="center">
             Don't have an account? <Link to="/signup">Sign Up</Link>
           </Typography>
