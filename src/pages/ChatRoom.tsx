@@ -149,8 +149,7 @@ const ChatRoom = () => {
       >
         <Toolbar
           sx={{
-            pl: { xs: "8px", sm: 2 },
-            pr: { xs: "8px", sm: 2 },
+            padding: "10px 16px",
           }}
         >
           <IconButton color="inherit" onClick={() => navigate(-1)} size="small">
@@ -163,7 +162,14 @@ const ChatRoom = () => {
               ml: { xs: 1, sm: 2 },
             }}
           >
-            <Avatar sx={{ mr: 1 }} src={chatPhotoUrl} alt={chatName} />
+            <Avatar
+              src={chatPhotoUrl}
+              alt={chatName}
+              sx={{
+                mr: 1,
+                border: "2px solid white",
+              }}
+            />
             <Typography
               variant="h6"
               sx={{

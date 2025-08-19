@@ -117,7 +117,7 @@ const ChatList = () => {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", margin: "0 auto", height: "calc(100vh - 20px)", maxWidth: "500px", width: "100%" }}>
-      <AppBar position="static" sx={{ borderBottomLeftRadius: "10px", borderBottomRightRadius: "10px" }}>
+      <AppBar position="static" sx={{ borderBottomLeftRadius: "10px", borderBottomRightRadius: "10px", zIndex: 99, boxShadow: "unset" }}>
         <Toolbar
           sx={{
             padding: "10px 16px",
@@ -142,6 +142,8 @@ const ChatList = () => {
             <Typography
               variant="h6"
               sx={{
+                fontWeight: "bold",
+                textTransform: "capitalize",
                 fontSize: { xs: "18px", sm: "inherit" },
               }}
             >
@@ -151,7 +153,13 @@ const ChatList = () => {
           {/* Profile Avatar with Menu */}
           <Box>
             <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)} size="large" sx={{ p: 0 }}>
-              <Avatar src={currentUser?.photoURL || ""} alt={currentUser?.displayName || ""} />
+              <Avatar
+                src={currentUser?.photoURL || ""}
+                alt={currentUser?.displayName || ""}
+                sx={{
+                  border: "2px solid white",
+                }}
+              />
             </IconButton>
             <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)} anchorOrigin={{ vertical: "bottom", horizontal: "right" }} transformOrigin={{ vertical: "top", horizontal: "right" }}>
               <MenuItem
@@ -171,7 +179,7 @@ const ChatList = () => {
           <CircularProgress />
         </Box>
       ) : (
-        <Box sx={{ overflowY: "auto", width: "100%", maxWidth: "500px", mx: "auto", p: 0, height: "90vh" }}>
+        <Box sx={{ overflowY: "auto", width: "100%", maxWidth: "500px", mx: "auto", pt: 3, height: "90vh", backgroundColor: "aliceblue", marginTop: "-15px" }}>
           <List
             sx={{
               padding: { xs: "0 15px", sm: "0 40px" },
@@ -194,7 +202,13 @@ const ChatList = () => {
                   }}
                 >
                   <ListItemAvatar>
-                    <Avatar src={user.avatar} />
+                    <Avatar
+                      src={user.avatar}
+                      alt={user.name}
+                      sx={{
+                        border: "2px solid black",
+                      }}
+                    />
                   </ListItemAvatar>
                   <ListItemText primary={user.name} title={user.email} />
                   <Box sx={{ ml: "auto", display: "flex", alignItems: "center" }}>
@@ -223,7 +237,14 @@ const ChatList = () => {
         </Box>
       )}
 
-      <Stack justifyContent={"end"} alignItems={"end"}>
+      <Stack
+        justifyContent={"end"}
+        alignItems={"end"}
+        pr={1}
+        sx={{
+          backgroundColor: "aliceblue",
+        }}
+      >
         <Typography variant="caption" color="text.secondary" align="center" sx={{ mt: 2 }}>
           © {new Date().getFullYear()} All rights reserved.
           <br />

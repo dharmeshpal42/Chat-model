@@ -30,7 +30,7 @@ const MessageBubble = ({ message, isOwnMessage }: MessageBubbleProps) => {
         gap: 1,
       }}
     >
-      {!isOwnMessage && <Avatar src={message.avatar} alt={message.senderName} sx={{ width: 30, height: 30 }} />}
+      {!isOwnMessage && <Avatar src={message.avatar} alt={message.senderName} sx={{ width: 30, height: 30, border: "2px solid white" }} />}
       <Box
         sx={{
           maxWidth: "75%",
