@@ -1,9 +1,10 @@
 // src/pages/Login.tsx
-import { AppBar, Box, Button, CircularProgress, Container, TextField, Toolbar, Typography } from "@mui/material";
+import { AppBar, Box, Button, CircularProgress, Container, Stack, TextField, Toolbar, Typography } from "@mui/material";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { auth } from "../firebase/firebase";
+import logo from "../assets/images/header-logo.png";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -50,11 +51,34 @@ const Login = () => {
 
   return (
     <Container component="main" maxWidth="xs">
-      <AppBar position="static">
+      <AppBar position="static" sx={{ borderBottomLeftRadius: "10px", borderBottomRightRadius: "10px", zIndex: 99, boxShadow: "unset" }}>
         <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            Login
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1, justifyContent: "center" }}>
+            <Stack
+              alignItems={"center"}
+              justifyContent={"center"}
+              sx={{
+                width: "40px",
+                height: "40px",
+                marginRight: "10px",
+                borderRadius: "50%",
+                overflow: "hidden",
+                backgroundColor: "white",
+              }}
+            >
+              <img src={logo} alt="Logo" style={{ width: "80%", height: "80%", objectFit: "cover" }} />
+            </Stack>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: "bold",
+                textTransform: "capitalize",
+                fontSize: { xs: "18px", sm: "inherit" },
+              }}
+            >
+              Chat-App
+            </Typography>
+          </Box>
         </Toolbar>
       </AppBar>
       <Box
