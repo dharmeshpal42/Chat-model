@@ -1,5 +1,5 @@
 // src/pages/ChatList.tsx
-import { AppBar, Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, List, ListItem, ListItemAvatar, ListItemText, Menu, MenuItem, Stack, Toolbar, Typography } from "@mui/material";
+import { AppBar, Avatar, Badge, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, List, ListItem, ListItemAvatar, ListItemText, Menu, MenuItem, Stack, Toolbar, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -197,38 +197,43 @@ const ChatList = () => {
                   sx={{
                     marginTop: 1,
                     cursor: "pointer",
-                    padding: "5px 10px",
+                    padding: "10px 15px",
+                    borderRadius: "10px",
+                    border: "2px solid #00000064",
+
+                    "&:hover": {
+                      backgroundColor: "#f0f0f0",
+                    },
+                    display: "flex",
+                    alignItems: "center",
                   }}
                 >
-                  <ListItemAvatar>
-                    <Avatar
-                      src={user.avatar}
-                      alt={user.name}
-                      sx={{
-                        border: "2px solid black",
-                      }}
-                    />
-                  </ListItemAvatar>
-                  <ListItemText primary={user.name} title={user.email} />
-                  <Box sx={{ ml: "auto", display: "flex", alignItems: "center" }}>
-                    {unseenMessageCounts[user.id] > 0 && (
-                      <Box
+                  <Badge
+                    badgeContent={unseenMessageCounts[user.id]}
+                    color="primary"
+                    invisible={unseenMessageCounts[user.id] <= 0}
+                    anchorOrigin={{
+                      vertical: "top",
+                      horizontal: "right",
+                    }}
+                    sx={{
+                      "& .MuiBadge-badge": {
+                        top: "3px",
+                        right: "20px",
+                      },
+                    }}
+                  >
+                    <ListItemAvatar>
+                      <Avatar
+                        src={user.avatar}
+                        alt={user.name}
                         sx={{
-                          backgroundColor: "primary.main",
-                          color: "white",
-                          borderRadius: "50%",
-                          width: "20px",
-                          height: "20px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "12px",
+                          border: "2px solid #00000064",
                         }}
-                      >
-                        {unseenMessageCounts[user.id]}
-                      </Box>
-                    )}
-                  </Box>
+                      />
+                    </ListItemAvatar>
+                  </Badge>
+                  <ListItemText primary={user.name} title={user.email} sx={{ ml: 2 }} />
                 </ListItem>
               ))
             )}
