@@ -24,7 +24,6 @@ interface PrivateRouteProps {
 
 const PrivateRoute = ({ children }: PrivateRouteProps) => {
   const { currentUser } = useAuth();
-  console.log("🚀  ~ PrivateRoute  ~ currentUser:", currentUser);
   return currentUser && Object.keys(currentUser).length > 0 ? <>{children}</> : <Navigate to="/login" />;
 };
 

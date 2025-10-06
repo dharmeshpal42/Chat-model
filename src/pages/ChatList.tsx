@@ -1,10 +1,11 @@
 // src/pages/ChatList.tsx
-import { AppBar, Avatar, Badge, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, List, ListItem, ListItemAvatar, ListItemText, Menu, MenuItem, Stack, Toolbar, Typography } from "@mui/material";
+import { AppBar, Avatar, Badge, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Fab, IconButton, List, ListItem, ListItemAvatar, ListItemText, Menu, MenuItem, Stack, TextField, Toolbar, Typography } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { signOut } from "firebase/auth";
-import { collection, getDocs, onSnapshot, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, onSnapshot, query, where } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { auth, db } from "../firebase/firebase";
 
@@ -14,9 +15,9 @@ import logo from "../assets/images/header-logo.png"; // Adjust the path as neces
 interface AppUser {
   id: string;
   name: string;
-  avatar: string;
-  email: string;
-  lastSeen: {
+  avatar?: string;
+  email?: string;
+  lastSeen?: {
     seconds: number;
     nanoseconds: number;
   };
@@ -29,88 +30,166 @@ const ChatList = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [unseenMessageCounts, setUnseenMessageCounts] = useState<{ [key: string]: number }>({});
+  const [addChatOpen, setAddChatOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteError, setInviteError] = useState<string>("");
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   useEffect(() => {
-    if (!currentUser) {
+    if (!currentUser?.uid) {
       setLoading(false);
       return;
     }
-    const fetchUsers = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "users"));
-        const usersData = querySnapshot.docs
-          .map((doc) => {
-            const data = doc.data();
-            // Ensure all required fields are present
-            if (typeof data.name === "string" && typeof data.avatar === "string" && typeof data.email === "string" && typeof data.lastSeen === "object") {
-              return {
-                id: doc.id,
-                name: data.name,
-                avatar: data.avatar,
-                email: data.email,
-                lastSeen: data.lastSeen,
-                uid: data.uid, // If you need uid elsewhere
-              } as AppUser & { uid?: string };
-            }
-            return null;
-          })
-          .filter((user): user is AppUser => user?.id !== currentUser.uid);
-        setLoading(false);
-        setUsers(usersData);
-      } catch (error) {
-        setLoading(false);
-        console.error("Error fetching users:", error);
-      }
-    };
 
-    fetchUsers();
-
-    // Listen for messages from all users to the current user
+    setLoading(true);
     const unsubscribes: (() => void)[] = [];
-    const usersCollectionRef = collection(db, "users");
-    const usersUnsubscribe = onSnapshot(usersCollectionRef, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === "added" || change.type === "modified") {
-          if (change.doc.id !== currentUser.uid) {
-            // Create a consistent chatId
-            const chatID = [currentUser.uid, change.doc.id].sort().join("-");
-            const messagesCollectionRef = collection(db, "chats", chatID, "messages");
-            // Listen for all messages in each chat and filter unread ones in code
-            const messagesUnsubscribe = onSnapshot(messagesCollectionRef, (messagesSnapshot) => {
-              const unseenCount = messagesSnapshot.docs.filter((doc) => {
-                const messageData = doc.data();
-                // Ensure the message is sent by the other user and not yet read by the current user
-                return messageData.senderId === change.doc.id && Array.isArray(messageData.readBy) && !messageData.readBy.includes(currentUser.uid);
-              }).length;
 
-              setUnseenMessageCounts((prevCounts) => ({
-                ...prevCounts,
-                [change.doc.id]: unseenCount,
-              }));
-            });
-            unsubscribes.push(messagesUnsubscribe);
+    // Subscribe to chats where the current user is a member
+    const chatsQuery = query(collection(db, "chats"), where("members", "array-contains", currentUser.uid));
+    const unsubscribeChats = onSnapshot(
+      chatsQuery,
+      async (chatsSnapshot) => {
+        try {
+          // If no chats, do not show any users
+          if (chatsSnapshot.empty) {
+            setUsers([]);
+            setLoading(false);
+            return;
           }
-        }
-      });
-    });
-    unsubscribes.push(usersUnsubscribe);
 
-    return () => unsubscribes.forEach((unsub) => unsub());
-  }, [currentUser]);
+          // Build a unique set of partner IDs from chats
+          const partnerIds = new Set<string>();
+          chatsSnapshot.forEach((chatDoc) => {
+            const data = chatDoc.data() as { members?: string[] };
+            const otherId = (data.members || []).find((m) => m !== currentUser.uid);
+            if (otherId) partnerIds.add(otherId);
+          });
+
+          // Fetch partner profiles
+          const partnerFetches = Array.from(partnerIds).map(async (partnerId) => {
+            const uDoc = await getDoc(doc(db, "users", partnerId));
+            const u = uDoc.data() || ({} as any);
+            const name = typeof u.name === "string" ? u.name : typeof u.email === "string" ? u.email : "User";
+            const avatar = typeof u.avatar === "string" ? u.avatar : "";
+            const email = typeof u.email === "string" ? u.email : undefined;
+            const lastSeen = typeof u.lastSeen === "object" ? u.lastSeen : undefined;
+            return {
+              id: partnerId,
+              name,
+              avatar,
+              email,
+              lastSeen,
+            } as AppUser;
+          });
+
+          const partners = (await Promise.all(partnerFetches)).filter((p): p is AppUser => !!p);
+          console.log("🚀  ~ ChatList  ~ partners:", partners);
+          setUsers(partners);
+          setLoading(false);
+
+          // Setup unseen message listeners per chat
+          // First, clear any previous listeners
+          unsubscribes.forEach((u) => u());
+          unsubscribes.length = 0;
+
+          chatsSnapshot.forEach((chatDoc) => {
+            const chatId = chatDoc.id;
+            const data = chatDoc.data() as { members?: string[] };
+            const otherId = (data.members || []).find((m) => m !== currentUser.uid);
+            if (!otherId) return;
+            const messagesCol = collection(db, "chats", chatId, "messages");
+            const unsub = onSnapshot(messagesCol, (messagesSnapshot) => {
+              const unseen = messagesSnapshot.docs.filter((d) => {
+                const md = d.data();
+                return md.senderId === otherId && Array.isArray(md.readBy) && !md.readBy.includes(currentUser.uid);
+              }).length;
+              setUnseenMessageCounts((prev) => ({ ...prev, [otherId]: unseen }));
+            });
+            unsubscribes.push(unsub);
+          });
+        } catch (e) {
+          console.error("Error building chat list:", e);
+          setLoading(false);
+        }
+      },
+      (err) => {
+        console.error("Error subscribing to chats:", err);
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      unsubscribeChats();
+      unsubscribes.forEach((u) => u());
+    };
+  }, [currentUser?.uid]);
 
   const handleLogout = async () => {
     await signOut(auth);
     navigate("/login");
   };
+  const openAddChat = () => {
+    setInviteEmail("");
+    setInviteError("");
+    setAddChatOpen(true);
+  };
+  const closeAddChat = () => {
+    if (!inviteLoading) setAddChatOpen(false);
+  };
 
+  const isValidEmail = (email: string) => {
+    return /[^@\s]+@[^@\s]+\.[^@\s]+/.test(email.toLowerCase());
+  };
+
+  const handleSubmitInvite = async () => {
+    setInviteError("");
+    const email = inviteEmail.trim().toLowerCase();
+    if (!email) {
+      setInviteError("Email is required");
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setInviteError("Enter a valid email address");
+      return;
+    }
+    if (!currentUser?.uid) {
+      setInviteError("You must be logged in");
+      return;
+    }
+    try {
+      setInviteLoading(true);
+      const qSnap = await getDocs(query(collection(db, "users"), where("email", "==", email)));
+      if (qSnap.empty) {
+        setInviteError("No user found with this email");
+        return;
+      }
+      const d = qSnap.docs[0];
+      const uid = d.id;
+      if (uid === currentUser.uid) {
+        setInviteError("You cannot start a chat with yourself");
+        return;
+      }
+      const u = d.data() || ({} as any);
+      const name = typeof u.name === "string" ? u.name : typeof u.email === "string" ? u.email : "User";
+      const avatar = typeof u.avatar === "string" ? u.avatar : "";
+      const emailField = typeof u.email === "string" ? u.email : undefined;
+      const otherUser: AppUser = { id: uid, name, avatar, email: emailField };
+      await handleChatSelect(otherUser);
+      setAddChatOpen(false);
+    } catch (e) {
+      console.error("Error finding user by email:", e);
+      setInviteError("Something went wrong. Please try again.");
+    } finally {
+      setInviteLoading(false);
+    }
+  };
   const handleChatSelect = async (otherUser: AppUser) => {
     if (!currentUser) return;
 
     // Create a consistent chatId by sorting the two UIDs
     const chatID = [currentUser.uid, otherUser.id].sort().join("-");
+    // Do NOT create the chat document here. It will be created on first message send in ChatRoom.
     navigate(`/chat/${chatID}`);
-    // Removed unused setAnchorEl function
-    // throw new Error("Function not implemented.");
   };
 
   return (
@@ -249,6 +328,10 @@ const ChatList = () => {
           backgroundColor: "aliceblue",
         }}
       >
+        {/* Floating Action Button to start a new chat by email */}
+        <Fab color="primary" aria-label="start chat" onClick={openAddChat}>
+          <AddIcon />
+        </Fab>
         <Typography variant="caption" color="text.secondary" align="center" sx={{ mt: 2 }}>
           © {new Date().getFullYear()} All rights reserved.
           <br />
@@ -275,6 +358,41 @@ const ChatList = () => {
             variant="contained"
           >
             Logout
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Start Chat Modal */}
+      <Dialog open={addChatOpen} onClose={closeAddChat} fullWidth maxWidth="xs">
+        <DialogTitle>Start a new chat</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="User email"
+            type="email"
+            fullWidth
+            value={inviteEmail}
+            onChange={(e) => {
+              setInviteEmail(e.target.value);
+              if (inviteError) setInviteError("");
+            }}
+            error={!!inviteError}
+            helperText={inviteError || "Enter the email of the user you want to chat with"}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSubmitInvite();
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeAddChat} disabled={inviteLoading}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmitInvite} variant="contained" disabled={inviteLoading}>
+            {inviteLoading ? "Checking..." : "Start Chat"}
           </Button>
         </DialogActions>
       </Dialog>

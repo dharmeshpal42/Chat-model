@@ -1,7 +1,7 @@
 // src/pages/ChatRoom.tsx
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { AppBar, Avatar, Box, CircularProgress, Divider, IconButton, Toolbar, Typography } from "@mui/material";
-import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, Timestamp, writeBatch } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, writeBatch } from "firebase/firestore";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -107,6 +107,24 @@ const ChatRoom = () => {
 
   const handleSendMessage = async (text: string) => {
     if (text.trim() === "" || !currentUser) return;
+    // Ensure a chat document exists and update metadata
+    const otherUserId = chatId!.split("-").find((id) => id !== currentUser.uid);
+    const chatRef = doc(db, "chats", chatId!);
+    await setDoc(
+      chatRef,
+      {
+        members: [currentUser.uid, otherUserId].filter(Boolean),
+        updatedAt: serverTimestamp(),
+        lastMessage: {
+          text: text.slice(0, 200),
+          senderId: currentUser.uid,
+          timestamp: serverTimestamp(),
+        },
+      },
+      { merge: true }
+    );
+
+    // Add the message
     await addDoc(collection(db, "chats", chatId!, "messages"), {
       senderId: currentUser.uid,
       text,
