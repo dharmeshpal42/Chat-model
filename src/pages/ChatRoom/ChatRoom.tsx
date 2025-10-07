@@ -144,9 +144,14 @@ const ChatRoom = () => {
         height: "100%",
       }}
     >
-      <ChatAreaHeader chatName={chatName} chatPhotoUrl={chatPhotoUrl} />
-      <ChatArea loading={loading} messages={messages} />
-
+      <ChatAreaHeader
+        chatName={chatName}
+        chatPhotoUrl={chatPhotoUrl}
+      />
+      <ChatArea
+        loading={loading}
+        messages={messages}
+      />
       <Box
         sx={{
           position: "fixed",

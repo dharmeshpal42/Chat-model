@@ -41,11 +41,10 @@ export const ChatArea = ({ loading, messages }: ChatAreaProps) => {
         backgroundColor: "aliceblue",
         scrollbarWidth: "none",
         "@media (max-width:600px)": {
-          height: "calc(100vh - 195px)",
+          height: "calc(100vh - 125px)",
           p: 1,
         },
         "@media (min-width:601px)": {
-          height: "calc(100vh - 125px)",
           p: 2,
         },
       }}
