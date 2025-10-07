@@ -1,17 +1,16 @@
 // src/pages/ChatRoom.tsx
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { AppBar, Avatar, Box, CircularProgress, Divider, IconButton, Toolbar, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, writeBatch } from "firebase/firestore";
-import React, { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 
-import MessageBubble from "../../components/MessageBubble";
 import MessageInput from "../../components/MessageInput";
 import { useAuth } from "../../context/AuthContext";
 import { db } from "../../firebase/firebase";
-import { format, isToday, isYesterday } from "date-fns";
+import { ChatArea } from "./components/chat-area";
+import { ChatAreaHeader } from "./components/chat-area-header";
 
-interface Message {
+export interface Message {
   id: string;
   senderId: string;
   text: string;
@@ -23,17 +22,11 @@ interface Message {
 
 const ChatRoom = () => {
   const { chatId } = useParams<{ chatId: string }>();
-  const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, showOldChats } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [chatName, setChatName] = useState("");
   const [chatPhotoUrl, setChatPhotoUrl] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   useEffect(() => {
     if (!chatId || !currentUser?.uid) return;
@@ -70,10 +63,14 @@ const ChatRoom = () => {
         };
       });
 
-      // Filter messages to show only the ones from the last 24 hours
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const filtered = allMessages.filter((msg) => msg.timestamp?.toDate() > twentyFourHoursAgo);
-      setMessages(filtered);
+      // Conditionally filter by last 24 hours based on preference from context
+      if (showOldChats) {
+        setMessages(allMessages);
+      } else {
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const filtered = allMessages.filter((msg) => msg.timestamp?.toDate() > twentyFourHoursAgo);
+        setMessages(filtered);
+      }
       setLoading(false);
 
       // --- NEW LOGIC TO MARK MESSAGES AS READ ---
@@ -96,6 +93,7 @@ const ChatRoom = () => {
 
     // Re-apply 24h filter every 1 minute
     const interval = setInterval(() => {
+      if (showOldChats) return; // No filtering when showing old chats
       setMessages((prev) => prev.filter((msg) => msg.timestamp?.toDate() > new Date(Date.now() - 24 * 60 * 60 * 1000)));
     }, 60 * 1000);
 
@@ -103,7 +101,7 @@ const ChatRoom = () => {
       if (unsubscribeMessages) unsubscribeMessages();
       clearInterval(interval);
     };
-  }, [chatId, currentUser?.uid]);
+  }, [chatId, currentUser?.uid, showOldChats]);
 
   const handleSendMessage = async (text: string) => {
     if (text.trim() === "" || !currentUser) return;
@@ -135,13 +133,6 @@ const ChatRoom = () => {
     });
   };
 
-  const APP_BAR_HEIGHT = 64;
-  const INPUT_HEIGHT = 60;
-  const getDateLabel = (date: Date) => {
-    if (isToday(date)) return "Today";
-    if (isYesterday(date)) return "Yesterday";
-    return format(date, "MMMM d, yyyy"); // e.g. August 18, 2025
-  };
   return (
     <Box
       sx={{
@@ -153,116 +144,8 @@ const ChatRoom = () => {
         height: "100%",
       }}
     >
-      <AppBar
-        position="fixed"
-        sx={{
-          top: 0,
-          left: "50%",
-          transform: "translateX(-50%)",
-          maxWidth: "500px",
-          width: "100%",
-          borderBottomLeftRadius: "10px",
-          borderBottomRightRadius: "10px",
-        }}
-      >
-        <Toolbar
-          sx={{
-            padding: "10px 16px",
-          }}
-        >
-          <IconButton color="inherit" onClick={() => navigate(-1)} size="small">
-            <ArrowBackIcon />
-          </IconButton>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              ml: { xs: 1, sm: 2 },
-            }}
-          >
-            <Avatar
-              src={chatPhotoUrl}
-              alt={chatName}
-              sx={{
-                mr: 1,
-                border: "2px solid white",
-              }}
-            />
-            <Typography
-              variant="h6"
-              sx={{
-                fontSize: { xs: "16px", sm: "inherit" },
-              }}
-            >
-              {chatName || "Chat"}
-            </Typography>
-          </Box>
-        </Toolbar>
-      </AppBar>
-
-      <Box
-        sx={{
-          position: "absolute",
-          top: APP_BAR_HEIGHT,
-          bottom: INPUT_HEIGHT,
-          left: 0,
-          right: 0,
-          overflowY: "auto",
-          p: 2,
-          display: "flex",
-          flexDirection: "column",
-          gap: 1,
-          height: "calc(100vh - 124px)",
-          backgroundColor: "aliceblue",
-          scrollbarWidth: "none",
-          "@media (max-width:600px)": {
-            height: "calc(100vh - 195px)",
-            p: 1,
-          },
-          "@media (min-width:601px)": {
-            height: "calc(100vh - 125px)",
-            p: 2,
-          },
-        }}
-      >
-        {loading ? (
-          <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
-            <CircularProgress />
-          </Box>
-        ) : messages.length === 0 ? (
-          <Typography align="center" color="text.secondary" sx={{ mt: 2 }}>
-            Start a new conversation!
-          </Typography>
-        ) : (
-          Object.entries(
-            messages.reduce((groups, msg) => {
-              const date = msg.timestamp?.toDate();
-              const dateKey = date ? format(date, "yyyy-MM-dd") : "unknown";
-              if (!groups[dateKey]) groups[dateKey] = [];
-              groups[dateKey].push(msg);
-              return groups;
-            }, {} as Record<string, Message[]>)
-          ).map(([dateKey, msgs]) => {
-            const dateLabel = getDateLabel(new Date(dateKey));
-            return (
-              <React.Fragment key={dateKey}>
-                {/* Date Divider */}
-                <Divider>
-                  <Typography variant="caption" color="text.secondary">
-                    {dateLabel}
-                  </Typography>
-                </Divider>
-
-                {/* Messages for this date */}
-                {msgs.map((msg) => (
-                  <MessageBubble key={msg.id} message={msg} isOwnMessage={msg.senderId === currentUser?.uid} />
-                ))}
-              </React.Fragment>
-            );
-          })
-        )}
-        <div ref={messagesEndRef} />
-      </Box>
+      <ChatAreaHeader chatName={chatName} chatPhotoUrl={chatPhotoUrl} />
+      <ChatArea loading={loading} messages={messages} />
 
       <Box
         sx={{

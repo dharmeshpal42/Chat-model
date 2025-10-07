@@ -12,7 +12,7 @@ interface IProps {
   confirmButtonText?: string;
   cancelButtonText?: string;
 }
-const CustomModal = ({ open, onClose, title, children, onCancel, onConfirm, buttonLoading, loadingText, confirmButtonText = "Confirm", cancelButtonText = "Cancel" }: IProps) => {
+const CustomModal = ({ open, onClose, title, children, onCancel, onConfirm, buttonLoading = false, loadingText, confirmButtonText = "Confirm", cancelButtonText = "Cancel" }: IProps) => {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
       <DialogTitle
