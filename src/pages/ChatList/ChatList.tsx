@@ -1,15 +1,16 @@
 // src/pages/ChatList.tsx
-import { AppBar, Avatar, Badge, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Fab, IconButton, List, ListItem, ListItemAvatar, ListItemText, Menu, MenuItem, Stack, TextField, Toolbar, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import { AppBar, Avatar, Badge, Box, CircularProgress, Fab, IconButton, List, ListItem, ListItemAvatar, ListItemText, Menu, MenuItem, Stack, TextField, Toolbar, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { signOut } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, onSnapshot, query, where } from "firebase/firestore";
-import { useAuth } from "../context/AuthContext";
-import { auth, db } from "../firebase/firebase";
+import { useAuth } from "../../context/AuthContext";
+import { auth, db } from "../../firebase/firebase";
 
-import logo from "../assets/images/header-logo.png"; // Adjust the path as necessary
+import CustomModal from "../../components/CustomModals/CustomModal";
+import logo from "../../assets/images/header-logo.png"; // Adjust the path as necessary
 
 // Define a type for a user document
 interface AppUser {
@@ -193,7 +194,7 @@ const ChatList = () => {
   };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", margin: "0 auto", height: "calc(100vh - 20px)", maxWidth: "500px", width: "100%" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", margin: "0 auto", height: "100vh", maxWidth: "500px", width: "100%" }}>
       <AppBar position="static" sx={{ borderBottomLeftRadius: "10px", borderBottomRightRadius: "10px", zIndex: 99, boxShadow: "unset" }}>
         <Toolbar
           sx={{
@@ -253,7 +254,7 @@ const ChatList = () => {
         </Toolbar>
       </AppBar>
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", p: 4, height: "90vh" }}>
+        <Box sx={{ display: "flex", justifyContent: "center", p: 4, height: "90vh", backgroundColor: "aliceblue" }}>
           <CircularProgress />
         </Box>
       ) : (
@@ -321,18 +322,27 @@ const ChatList = () => {
       )}
 
       <Stack
-        justifyContent={"end"}
-        alignItems={"end"}
-        pr={1}
+        direction={"row-reverse"}
+        justifyContent={"space-between"}
+        alignItems={"center"}
+        p={1}
         sx={{
-          backgroundColor: "aliceblue",
+          backgroundColor: "#1976d2",
+          borderRadius: "10px 10px 0 0",
         }}
       >
         {/* Floating Action Button to start a new chat by email */}
-        <Fab color="primary" aria-label="start chat" onClick={openAddChat}>
+        <Fab
+          color="primary"
+          aria-label="start chat"
+          onClick={openAddChat}
+          sx={{
+            background: "#00000064",
+          }}
+        >
           <AddIcon />
         </Fab>
-        <Typography variant="caption" color="text.secondary" align="center" sx={{ mt: 2 }}>
+        <Typography variant="caption" color="white" align="center" sx={{ mt: 2 }}>
           © {new Date().getFullYear()} All rights reserved.
           <br />
           Develop by <b>Dharmesh Pal</b>
@@ -340,62 +350,60 @@ const ChatList = () => {
       </Stack>
 
       {/* Confirmation Dialog */}
-      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
-        <DialogTitle>Confirm Logout</DialogTitle>
-        <DialogContent>
-          <Typography>Are you sure you want to logout?</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)} color="primary">
-            Cancel
-          </Button>
-          <Button
-            onClick={() => {
-              setConfirmOpen(false);
-              handleLogout();
-            }}
-            color="error"
-            variant="contained"
-          >
-            Logout
-          </Button>
-        </DialogActions>
-      </Dialog>
 
-      {/* Start Chat Modal */}
-      <Dialog open={addChatOpen} onClose={closeAddChat} fullWidth maxWidth="xs">
-        <DialogTitle>Start a new chat</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="User email"
-            type="email"
-            fullWidth
-            value={inviteEmail}
-            onChange={(e) => {
-              setInviteEmail(e.target.value);
-              if (inviteError) setInviteError("");
-            }}
-            error={!!inviteError}
-            helperText={inviteError || "Enter the email of the user you want to chat with"}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                handleSubmitInvite();
-              }
-            }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeAddChat} disabled={inviteLoading}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmitInvite} variant="contained" disabled={inviteLoading}>
-            {inviteLoading ? "Checking..." : "Start Chat"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <CustomModal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title="Confirm Logout"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          handleLogout();
+        }}
+        buttonLoading={loading}
+        loadingText="Logging out..."
+        confirmButtonText="Logout"
+        cancelButtonText="Cancel"
+      >
+        <Typography>Are you sure you want to logout?</Typography>
+      </CustomModal>
+
+      <CustomModal
+        open={addChatOpen}
+        onClose={closeAddChat}
+        title="Start a new chat"
+        onCancel={closeAddChat}
+        onConfirm={() => {
+          // Run validation and submission; modal will close itself on success
+          handleSubmitInvite();
+        }}
+        buttonLoading={inviteLoading}
+        loadingText="Checking..."
+        confirmButtonText="Start Chat"
+        cancelButtonText="Cancel"
+      >
+        <TextField
+          autoFocus
+          margin="dense"
+          label="User email"
+          type="email"
+          size="small"
+          fullWidth
+          value={inviteEmail}
+          onChange={(e) => {
+            setInviteEmail(e.target.value);
+            if (inviteError) setInviteError("");
+          }}
+          error={!!inviteError}
+          helperText={inviteError || "Enter the email of the user you want to chat with"}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleSubmitInvite();
+            }
+          }}
+        />
+      </CustomModal>
     </Box>
   );
 };

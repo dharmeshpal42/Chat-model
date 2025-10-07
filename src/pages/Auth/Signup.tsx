@@ -4,7 +4,7 @@ import { Container, Box, TextField, Button, Typography, AppBar, Toolbar, Circula
 import { Link, useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "../firebase/firebase";
+import { auth, db } from "../../firebase/firebase";
 
 const Signup = () => {
   const [email, setEmail] = useState("");

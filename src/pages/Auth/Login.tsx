@@ -3,8 +3,8 @@ import { AppBar, Box, Button, CircularProgress, Container, Stack, TextField, Too
 import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { auth } from "../firebase/firebase";
-import logo from "../assets/images/header-logo.png";
+import { auth } from "../../firebase/firebase";
+import logo from "../../assets/images/header-logo.png";
 
 const Login = () => {
   const [email, setEmail] = useState("");

@@ -1,15 +1,14 @@
 // src/App.tsx
-import React, { ReactNode } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { ReactNode } from "react";
+import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
-import ChatList from "./pages/ChatList";
-import ChatRoom from "./pages/ChatRoom";
-import { Box, CircularProgress } from "@mui/material";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
+import ChatList from "./pages/ChatList/ChatList";
+import ChatRoom from "./pages/ChatRoom/ChatRoom";
+import Login from "./pages/Auth/Login";
+import Signup from "./pages/Auth/Signup";
 
 const theme = createTheme({
   palette: {

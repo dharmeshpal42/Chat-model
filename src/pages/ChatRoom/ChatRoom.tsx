@@ -5,10 +5,10 @@ import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTime
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import MessageBubble from "../components/MessageBubble";
-import MessageInput from "../components/MessageInput";
-import { useAuth } from "../context/AuthContext";
-import { db } from "../firebase/firebase";
+import MessageBubble from "../../components/MessageBubble";
+import MessageInput from "../../components/MessageInput";
+import { useAuth } from "../../context/AuthContext";
+import { db } from "../../firebase/firebase";
 import { format, isToday, isYesterday } from "date-fns";
 
 interface Message {
