@@ -1,7 +1,7 @@
 // src/pages/ChatRoom.tsx
 import { Box } from "@mui/material";
-import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, writeBatch } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch } from "firebase/firestore";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import MessageInput from "../../components/MessageInput";
@@ -18,6 +18,8 @@ export interface Message {
   avatar?: string;
   senderName?: string;
   readBy: string[]; // Add a readBy field
+  edited?: boolean;
+  updatedAt?: Timestamp;
 }
 
 const ChatRoom = () => {
@@ -27,20 +29,36 @@ const ChatRoom = () => {
   const [loading, setLoading] = useState(true);
   const [chatName, setChatName] = useState("");
   const [chatPhotoUrl, setChatPhotoUrl] = useState("");
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const [otherUserLastSeenMs, setOtherUserLastSeenMs] = useState<number | null>(null);
+  const [inputText, setInputText] = useState("");
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!chatId || !currentUser?.uid) return;
 
     let unsubscribeMessages: (() => void) | undefined;
+    let unsubscribeUser: (() => void) | undefined;
 
     const fetchChatInfo = async () => {
       const otherUserId = chatId.split("-").find((id) => id !== currentUser?.uid);
       if (otherUserId) {
-        const userDoc = await getDoc(doc(db, "users", otherUserId));
-        if (userDoc.exists()) {
-          setChatName(userDoc.data().name);
-          setChatPhotoUrl(userDoc.data().avatar);
-        }
+        // live subscribe to other user's profile to get name, avatar, lastSeen updates
+        const userRef = doc(db, "users", otherUserId);
+        unsubscribeUser = onSnapshot(userRef, (userDoc) => {
+          if (userDoc.exists()) {
+            const data = userDoc.data() as any;
+            setChatName(data.name);
+            setChatPhotoUrl(data.avatar);
+            const ls = data.lastSeen;
+            if (ls && typeof ls.toDate === "function") {
+              setOtherUserLastSeenMs(ls.toDate().getTime());
+            } else {
+              setOtherUserLastSeenMs(null);
+            }
+          }
+        });
       }
     };
 
@@ -60,6 +78,8 @@ const ChatRoom = () => {
           avatar: data.avatar,
           senderName: data.senderName,
           readBy: data.readBy || [],
+          edited: Boolean(data.edited),
+          updatedAt: data.updatedAt,
         };
       });
 
@@ -99,9 +119,24 @@ const ChatRoom = () => {
 
     return () => {
       if (unsubscribeMessages) unsubscribeMessages();
+      if (unsubscribeUser) unsubscribeUser();
       clearInterval(interval);
     };
   }, [chatId, currentUser?.uid, showOldChats]);
+
+  // Listen to other user's typing status for this chat
+  useEffect(() => {
+    if (!chatId || !currentUser?.uid) return;
+    const otherUserId = chatId.split("-").find((id) => id !== currentUser.uid);
+    if (!otherUserId) return;
+
+    const typingDocRef = doc(db, "chats", chatId, "typing", otherUserId);
+    const unsub = onSnapshot(typingDocRef, (snap) => {
+      const data = snap.data() as { isTyping?: boolean } | undefined;
+      setOtherUserTyping(Boolean(data?.isTyping));
+    });
+    return () => unsub();
+  }, [chatId, currentUser?.uid]);
 
   const handleSendMessage = async (text: string) => {
     if (text.trim() === "" || !currentUser) return;
@@ -122,15 +157,33 @@ const ChatRoom = () => {
       { merge: true }
     );
 
-    // Add the message
-    await addDoc(collection(db, "chats", chatId!, "messages"), {
-      senderId: currentUser.uid,
-      text,
-      timestamp: serverTimestamp(),
-      avatar: currentUser.photoURL,
-      senderName: currentUser.displayName,
-      readBy: [currentUser.uid],
-    });
+    if (editingMessage) {
+      // Update existing message
+      const msgRef = doc(db, "chats", chatId!, "messages", editingMessage.id);
+      await updateDoc(msgRef, {
+        text,
+        edited: true,
+        updatedAt: serverTimestamp(),
+      });
+      setEditingMessage(null);
+    } else {
+      // Add a new message
+      await addDoc(collection(db, "chats", chatId!, "messages"), {
+        senderId: currentUser.uid,
+        text,
+        timestamp: serverTimestamp(),
+        avatar: currentUser.photoURL,
+        senderName: currentUser.displayName,
+        readBy: [currentUser.uid],
+      });
+    }
+
+    // clear input
+    setInputText("");
+
+    // Update sender's lastSeen on send
+    const meRef = doc(db, "users", currentUser.uid);
+    await setDoc(meRef, { lastSeen: serverTimestamp() }, { merge: true }).catch(() => undefined);
   };
 
   return (
@@ -147,10 +200,22 @@ const ChatRoom = () => {
       <ChatAreaHeader
         chatName={chatName}
         chatPhotoUrl={chatPhotoUrl}
+        isTyping={otherUserTyping}
+        lastSeenMs={otherUserLastSeenMs}
       />
       <ChatArea
         loading={loading}
         messages={messages}
+        onRequestEdit={(msg) => {
+          // only allow editing own message (defensive; also enforced in MessageBubble)
+          if (msg.senderId !== currentUser?.uid) return;
+          setEditingMessage(msg);
+          setInputText(msg.text);
+          // focus input after state updates microtask
+          setTimeout(() => {
+            inputRef.current?.focus();
+          }, 0);
+        }}
       />
       <Box
         sx={{
@@ -160,11 +225,28 @@ const ChatRoom = () => {
           transform: "translateX(-50%)",
           maxWidth: "500px",
           width: "100%",
-          borderTop: "1px solid #ccc",
           backgroundColor: "#fff",
         }}
       >
-        <MessageInput onSendMessage={handleSendMessage} />
+        <MessageInput
+          ref={inputRef}
+          value={inputText}
+          onChange={setInputText}
+          onSendMessage={handleSendMessage}
+          onTypingChange={async (isTyping) => {
+            if (!chatId || !currentUser?.uid) return;
+            try {
+              const typingDocRef = doc(db, "chats", chatId, "typing", currentUser.uid);
+              await setDoc(typingDocRef, { isTyping, updatedAt: serverTimestamp() }, { merge: true });
+              // also nudge current user's lastSeen
+              const meRef = doc(db, "users", currentUser.uid);
+              await setDoc(meRef, { lastSeen: serverTimestamp() }, { merge: true });
+            } catch (e) {
+              // non-blocking
+              console.warn("Failed to update typing state", e);
+            }
+          }}
+        />
       </Box>
     </Box>
   );

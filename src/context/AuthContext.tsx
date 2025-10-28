@@ -8,6 +8,8 @@ interface AuthContextType {
   currentUser: User | null;
   showOldChats: boolean;
   setShowOldChatsRemote: (value: boolean) => Promise<void>;
+  themeMode: 'light' | 'dark';
+  setThemeModeRemote: (mode: 'light' | 'dark') => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -16,6 +18,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [showOldChats, setShowOldChats] = useState<boolean>(false);
+  const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -29,6 +32,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!currentUser?.uid) {
       setShowOldChats(false);
+      setThemeMode('light');
       return;
     }
 
@@ -39,9 +43,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const snap = await getDoc(userRef);
         if (!snap.exists()) {
-          await setDoc(userRef, { showOldChats: false }, { merge: true });
-        } else if (typeof snap.data()?.showOldChats !== "boolean") {
-          await setDoc(userRef, { showOldChats: false }, { merge: true });
+          await setDoc(userRef, { showOldChats: false, themeMode: 'light' }, { merge: true });
+        } else {
+          const data = snap.data() as any;
+          if (typeof data?.showOldChats !== 'boolean') {
+            await setDoc(userRef, { showOldChats: false }, { merge: true });
+          }
+          if (data?.themeMode !== 'light' && data?.themeMode !== 'dark') {
+            await setDoc(userRef, { themeMode: 'light' }, { merge: true });
+          }
         }
       } catch (e) {
         // fail-soft: keep default false
@@ -50,8 +60,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     })();
 
     const unsub = onSnapshot(userRef, (snapshot) => {
-      const data = snapshot.data() as { showOldChats?: boolean } | undefined;
+      const data = snapshot.data() as { showOldChats?: boolean; themeMode?: 'light' | 'dark' } | undefined;
       setShowOldChats(Boolean(data?.showOldChats));
+      if (data?.themeMode === 'dark' || data?.themeMode === 'light') setThemeMode(data.themeMode);
     });
 
     return () => unsub();
@@ -66,7 +77,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [currentUser?.uid]
   );
 
-  return <AuthContext.Provider value={{ currentUser, showOldChats, setShowOldChatsRemote }}>{!loading && children}</AuthContext.Provider>;
+  const setThemeModeRemote = useCallback(
+    async (mode: 'light' | 'dark') => {
+      if (!currentUser?.uid) return;
+      const userRef = doc(db, "users", currentUser.uid);
+      await setDoc(userRef, { themeMode: mode }, { merge: true });
+    },
+    [currentUser?.uid]
+  );
+
+  return <AuthContext.Provider value={{ currentUser, showOldChats, setShowOldChatsRemote, themeMode, setThemeModeRemote }}>{!loading && children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

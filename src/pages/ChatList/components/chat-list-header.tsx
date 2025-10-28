@@ -1,4 +1,5 @@
 import { AppBar, Toolbar, Box, Stack, Typography, IconButton, Avatar, Menu, MenuItem, Drawer, Switch, FormControlLabel, Divider } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import logo from "../../../assets/images/header-logo.png";
 import { useState } from "react";
 import { useAuth } from "../../../context/AuthContext";
@@ -9,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 
 export const ChatListHeader = () => {
   const navigate = useNavigate();
-  const { currentUser, showOldChats, setShowOldChatsRemote } = useAuth();
+  const { currentUser, showOldChats, setShowOldChatsRemote, themeMode, setThemeModeRemote } = useAuth();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -20,7 +21,10 @@ export const ChatListHeader = () => {
   };
 
   return (
-    <AppBar position="static" sx={{ borderBottomLeftRadius: "10px", borderBottomRightRadius: "10px", zIndex: 99, boxShadow: "unset" }}>
+    <AppBar
+      position="static"
+      sx={{ borderBottomLeftRadius: "10px", borderBottomRightRadius: "10px", zIndex: 99, boxShadow: "unset" }}
+    >
       <Toolbar
         sx={{
           padding: "10px 16px",
@@ -40,7 +44,11 @@ export const ChatListHeader = () => {
               backgroundColor: "white",
             }}
           >
-            <img src={logo} alt="Logo" style={{ width: "80%", height: "80%", objectFit: "cover" }} />
+            <img
+              src={logo}
+              alt="Logo"
+              style={{ width: "80%", height: "80%", objectFit: "cover" }}
+            />
           </Stack>
           <Typography
             variant="h6"
@@ -55,7 +63,12 @@ export const ChatListHeader = () => {
         </Box>
         {/* Profile Avatar with Menu */}
         <Box>
-          <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)} size="large" sx={{ p: 0 }}>
+          <IconButton
+            color="inherit"
+            onClick={(e) => setAnchorEl(e.currentTarget)}
+            size="large"
+            sx={{ p: 0 }}
+          >
             <Avatar
               src={currentUser?.photoURL || ""}
               alt={currentUser?.displayName || ""}
@@ -65,7 +78,13 @@ export const ChatListHeader = () => {
               }}
             />
           </IconButton>
-          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)} anchorOrigin={{ vertical: "bottom", horizontal: "right" }} transformOrigin={{ vertical: "top", horizontal: "right" }}>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={() => setAnchorEl(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
+          >
             <MenuItem
               onClick={() => {
                 setAnchorEl(null);
@@ -116,32 +135,82 @@ export const ChatListHeader = () => {
             maxWidth: 500,
             width: "100%",
             margin: "0 auto",
+            pb: 2,
           },
         }}
       >
         <Box sx={{ p: 2 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Avatar src={currentUser?.photoURL || ""} alt={currentUser?.displayName || ""} sx={{ width: 56, height: 56 }} />
+          {/* Header with close button */}
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+            <Typography variant="h6">Profile</Typography>
+            <IconButton
+              aria-label="Close profile"
+              onClick={() => setProfileOpen(false)}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+
+          <Divider sx={{ mb: 2 }} />
+
+          {/* User info */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+            <Avatar
+              src={currentUser?.photoURL || ""}
+              alt={currentUser?.displayName || ""}
+              sx={{ width: 64, height: 64 }}
+            />
             <Box>
-              <Typography variant="subtitle1">{currentUser?.displayName}</Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: 600 }}
+              >
+                {currentUser?.displayName}
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
                 {currentUser?.email}
               </Typography>
             </Box>
           </Box>
 
-          <Divider sx={{ my: 2 }} />
+          <Divider sx={{ mb: 2 }} />
 
-          <FormControlLabel control={<Switch checked={showOldChats} onChange={(e) => setShowOldChatsRemote(e.target.checked)} />} label="Show old chats" />
-
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-            When enabled, chats will show all messages. When disabled, messages older than 24 hours are hidden.
-          </Typography>
-
-          <Box sx={{ mt: 2, textAlign: "right" }}>
-            <IconButton onClick={() => setProfileOpen(false)} color="primary">
-              <Typography>Close</Typography>
-            </IconButton>
+          {/* Preferences */}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            <Typography
+              variant="overline"
+              color="text.secondary"
+              sx={{ letterSpacing: 1 }}
+            >
+              Preferences
+            </Typography>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showOldChats}
+                  onChange={(e) => setShowOldChatsRemote(e.target.checked)}
+                />
+              }
+              label="Show old chats"
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={themeMode === "dark"}
+                  onChange={(e) => setThemeModeRemote(e.target.checked ? "dark" : "light")}
+                />
+              }
+              label="Dark mode"
+            />
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              When enabled, chats will show all messages. When disabled, messages older than 24 hours are hidden.
+            </Typography>
           </Box>
         </Box>
       </Drawer>

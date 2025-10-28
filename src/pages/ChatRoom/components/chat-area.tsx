@@ -10,8 +10,9 @@ const INPUT_HEIGHT = 60;
 export interface ChatAreaProps {
   loading: boolean;
   messages: Message[];
+  onRequestEdit?: (msg: Message) => void;
 }
-export const ChatArea = ({ loading, messages }: ChatAreaProps) => {
+export const ChatArea = ({ loading, messages, onRequestEdit }: ChatAreaProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { currentUser } = useAuth();
@@ -60,8 +61,16 @@ export const ChatArea = ({ loading, messages }: ChatAreaProps) => {
       ) : (
         Object.entries(
           messages.reduce((groups, msg) => {
-            const date = msg.timestamp?.toDate();
-            const dateKey = date ? format(date, "yyyy-MM-dd") : "unknown";
+            // Robustly derive a Date for grouping; fall back to now to avoid a temporary "unknown" section
+            let d: Date | null = null;
+            try {
+              const raw = (msg as any)?.timestamp;
+              d = raw && typeof raw.toDate === "function" ? raw.toDate() : null;
+            } catch {
+              d = null;
+            }
+            const date = d && !isNaN(d.getTime()) ? d : new Date();
+            const dateKey = format(date, "yyyy-MM-dd");
             if (!groups[dateKey]) groups[dateKey] = [];
             groups[dateKey].push(msg);
             return groups;
@@ -79,7 +88,12 @@ export const ChatArea = ({ loading, messages }: ChatAreaProps) => {
 
               {/* Messages for this date */}
               {msgs.map((msg) => (
-                <MessageBubble key={msg.id} message={msg} isOwnMessage={msg.senderId === currentUser?.uid} />
+                <MessageBubble
+                  key={msg.id}
+                  message={msg}
+                  isOwnMessage={msg.senderId === currentUser?.uid}
+                  onRequestEdit={onRequestEdit}
+                />
               ))}
             </React.Fragment>
           );

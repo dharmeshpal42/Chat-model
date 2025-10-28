@@ -92,23 +92,27 @@ export const ChatListBottom = () => {
         alignItems={"center"}
         p={1}
         sx={{
-          backgroundColor: "#1976d2",
+          backgroundColor: (theme) => (theme.palette.mode === "dark" ? "#000000" : theme.palette.primary.main),
           borderRadius: "10px 10px 0 0",
         }}
       >
         {/* Floating Action Button to start a new chat by email */}
         <Fab
-          size="medium"
+          size="small"
           color="primary"
           aria-label="start chat"
           onClick={openAddChat}
-          sx={{
-            background: "#00000064",
-          }}
         >
           <AddIcon />
         </Fab>
-        <Typography variant="caption" color="white" align="center" sx={{ mt: 2 }}>
+        <Typography
+          variant="caption"
+          align="center"
+          sx={{
+            mt: 2,
+            color: (theme) => (theme.palette.mode === "dark" ? theme.palette.getContrastText("#000000") : theme.palette.getContrastText(theme.palette.primary.main)),
+          }}
+        >
           © {new Date().getFullYear()} All rights reserved.
           <br />
           Develop by <b>Dharmesh Pal</b>
