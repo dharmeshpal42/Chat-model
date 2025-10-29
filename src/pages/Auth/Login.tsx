@@ -52,8 +52,14 @@ const Login = () => {
   // };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <AppBar position="static" sx={{ borderBottomLeftRadius: "10px", borderBottomRightRadius: "10px", zIndex: 99, boxShadow: "unset" }}>
+    <Container
+      component="main"
+      maxWidth="xs"
+    >
+      <AppBar
+        position="static"
+        sx={{ borderBottomLeftRadius: "10px", borderBottomRightRadius: "10px", zIndex: 99, boxShadow: "unset" }}
+      >
         <Toolbar>
           <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1, justifyContent: "center" }}>
             <Stack
@@ -68,7 +74,11 @@ const Login = () => {
                 backgroundColor: "white",
               }}
             >
-              <img src={logo} alt="Logo" style={{ width: "80%", height: "80%", objectFit: "cover" }} />
+              <img
+                src={logo}
+                alt="Logo"
+                style={{ width: "80%", height: "80%", objectFit: "cover" }}
+              />
             </Stack>
             <Typography
               variant="h6"
@@ -91,15 +101,33 @@ const Login = () => {
           alignItems: "center",
         }}
       >
-        <Typography component="h1" variant="h5">
+        <Typography
+          component="h1"
+          variant="h5"
+        >
           Sign In
         </Typography>
-        <Box component="form" onSubmit={handleEmailLogin} sx={{ mt: 1 }}>
-          <TextField margin="normal" required fullWidth label="Email Address" type="email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Box
+          component="form"
+          onSubmit={handleEmailLogin}
+          sx={{ mt: 1 }}
+        >
           <TextField
             margin="normal"
             required
             fullWidth
+            size="small"
+            label="Email Address"
+            type="email"
+            autoFocus
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            size="small"
             label="Password"
             type={showPassword ? "text" : "password"}
             value={password}
@@ -119,16 +147,29 @@ const Login = () => {
               ),
             }}
           />
-          <Typography variant="body2" align="right" sx={{ mt: 1 }}>
+          <Typography
+            variant="body2"
+            align="right"
+            sx={{ mt: 1 }}
+          >
             <Link to="/forgot-password">Forgot password?</Link>
           </Typography>
-          <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }} disabled={loading}>
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            sx={{ mt: 3, mb: 2 }}
+            disabled={loading}
+          >
             {loading ? <CircularProgress size={24} /> : "Log In"}
           </Button>
           {/* <Button fullWidth variant="outlined" onClick={handleGoogleLogin} sx={{ mb: 2 }} disabled={loading}>
             Sign In with Google
           </Button> */}
-          <Typography variant="body2" align="center">
+          <Typography
+            variant="body2"
+            align="center"
+          >
             Don't have an account? <Link to="/signup">Sign Up</Link>
           </Typography>
         </Box>
