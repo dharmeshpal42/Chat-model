@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 export const ChatListHeader = () => {
   const navigate = useNavigate();
   const { currentUser, showOldChats, setShowOldChatsRemote, themeMode, setThemeModeRemote } = useAuth();
+  console.log("🚀  ~ currentUser:", currentUser);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -28,39 +29,28 @@ export const ChatListHeader = () => {
       <Toolbar
         sx={{
           padding: "10px 16px",
+          justifyContent: "space-between",
         }}
       >
         {/* Logo and Title */}
-        <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
-          <Stack
-            alignItems={"center"}
-            justifyContent={"center"}
-            sx={{
-              width: "40px",
-              height: "40px",
-              marginRight: "10px",
-              borderRadius: "50%",
-              overflow: "hidden",
-              backgroundColor: "white",
-            }}
-          >
-            <img
-              src={logo}
-              alt="Logo"
-              style={{ width: "80%", height: "80%", objectFit: "cover" }}
-            />
-          </Stack>
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: "bold",
-              textTransform: "capitalize",
-              fontSize: { xs: "18px", sm: "inherit" },
-            }}
-          >
-            {currentUser?.displayName ? `${currentUser.displayName}` : ""}
-          </Typography>
-        </Box>
+
+        <Stack
+          alignItems={"start"}
+          justifyContent={"start"}
+          sx={{
+            width: "50%",
+            height: "50px",
+            borderRadius: "10px",
+            overflow: "hidden",
+          }}
+        >
+          <img
+            src={logo}
+            alt=""
+            aria-hidden="true"
+            style={{ width: "100%", height: "100%", objectFit: "contain", objectPosition: "left" }}
+          />
+        </Stack>
         {/* Profile Avatar with Menu */}
         <Box>
           <IconButton
@@ -70,7 +60,7 @@ export const ChatListHeader = () => {
             sx={{ p: 0 }}
           >
             <Avatar
-              src={currentUser?.photoURL || ""}
+              src={currentUser?.photoURL || logo}
               alt={currentUser?.displayName || ""}
               title={currentUser?.displayName || ""}
               sx={{

@@ -66,30 +66,21 @@ const Login = () => {
               alignItems={"center"}
               justifyContent={"center"}
               sx={{
-                width: "40px",
-                height: "40px",
+                width: "100%",
+                height: "80px",
                 marginRight: "10px",
-                borderRadius: "50%",
+                borderRadius: "10px",
                 overflow: "hidden",
-                backgroundColor: "white",
+                padding: "10px",
               }}
             >
               <img
                 src={logo}
-                alt="Logo"
-                style={{ width: "80%", height: "80%", objectFit: "cover" }}
+                alt=""
+                aria-hidden="true"
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
               />
             </Stack>
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: "bold",
-                textTransform: "capitalize",
-                fontSize: { xs: "18px", sm: "inherit" },
-              }}
-            >
-              Chat-App
-            </Typography>
           </Box>
         </Toolbar>
       </AppBar>

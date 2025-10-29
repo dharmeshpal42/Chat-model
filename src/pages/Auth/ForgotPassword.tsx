@@ -1,9 +1,10 @@
 // src/pages/Auth/ForgotPassword.tsx
 import React, { useState } from "react";
-import { AppBar, Box, Button, CircularProgress, Container, TextField, Toolbar, Typography } from "@mui/material";
+import { AppBar, Box, Button, CircularProgress, Container, Stack, TextField, Toolbar, Typography } from "@mui/material";
 import { Link } from "react-router-dom";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../../firebase/firebase";
+import logo from "../../assets/images/header-logo.png";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -36,12 +37,27 @@ const ForgotPassword = () => {
         sx={{ borderBottomLeftRadius: "10px", borderBottomRightRadius: "10px", zIndex: 99, boxShadow: "unset" }}
       >
         <Toolbar>
-          <Typography
-            variant="h6"
-            sx={{ flexGrow: 1 }}
-          >
-            Forgot Password
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1, justifyContent: "center" }}>
+            <Stack
+              alignItems={"center"}
+              justifyContent={"center"}
+              sx={{
+                width: "100%",
+                height: "80px",
+                marginRight: "10px",
+                borderRadius: "10px",
+                overflow: "hidden",
+                padding: "10px",
+              }}
+            >
+              <img
+                src={logo}
+                alt=""
+                aria-hidden="true"
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
+            </Stack>
+          </Box>
         </Toolbar>
       </AppBar>
 

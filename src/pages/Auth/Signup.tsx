@@ -1,11 +1,12 @@
 // src/pages/Signup.tsx
 import React, { useState } from "react";
-import { Container, Box, TextField, Button, Typography, AppBar, Toolbar, CircularProgress, InputAdornment, IconButton } from "@mui/material";
+import { Container, Box, TextField, Button, Typography, AppBar, Toolbar, CircularProgress, InputAdornment, IconButton, Stack } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { Link, useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../../firebase/firebase";
+import logo from "../../assets/images/header-logo.png";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
@@ -43,14 +44,32 @@ const Signup = () => {
       component="main"
       maxWidth="xs"
     >
-      <AppBar position="static">
+      <AppBar
+        position="static"
+        sx={{ borderBottomLeftRadius: "10px", borderBottomRightRadius: "10px", zIndex: 99, boxShadow: "unset" }}
+      >
         <Toolbar>
-          <Typography
-            variant="h6"
-            sx={{ flexGrow: 1 }}
-          >
-            Sign Up
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1, justifyContent: "center" }}>
+            <Stack
+              alignItems={"center"}
+              justifyContent={"center"}
+              sx={{
+                width: "100%",
+                height: "80px",
+                marginRight: "10px",
+                borderRadius: "10px",
+                overflow: "hidden",
+                padding: "10px",
+              }}
+            >
+              <img
+                src={logo}
+                alt=""
+                aria-hidden="true"
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
+            </Stack>
+          </Box>
         </Toolbar>
       </AppBar>
       <Box
@@ -63,7 +82,14 @@ const Signup = () => {
       >
         <Typography
           component="h1"
-          variant="h5"
+          variant="h6"
+          sx={{ flexGrow: 1, fontWeight: "700" }}
+        >
+          Sign Up
+        </Typography>
+        <Typography
+          component="h1"
+          variant="h6"
         >
           Create an Account
         </Typography>
