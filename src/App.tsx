@@ -9,6 +9,7 @@ import ChatList from "./pages/ChatList/ChatList";
 import ChatRoom from "./pages/ChatRoom/ChatRoom";
 import Login from "./pages/Auth/Login";
 import Signup from "./pages/Auth/Signup";
+import ForgotPassword from "./pages/Auth/ForgotPassword";
 
 interface PrivateRouteProps {
   children: ReactNode;
@@ -38,8 +39,18 @@ const AppThemed = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+        <Route
+          path="/signup"
+          element={<Signup />}
+        />
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
         <Route
           path="/"
           element={
