@@ -1,19 +1,14 @@
 // src/pages/ChatList.tsx
-import AddIcon from "@mui/icons-material/Add";
-import { AppBar, Avatar, Badge, Box, CircularProgress, Fab, IconButton, List, ListItem, ListItemAvatar, ListItemText, Menu, MenuItem, Stack, TextField, Toolbar, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
-import { signOut } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, onSnapshot, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, onSnapshot, query, where } from "firebase/firestore";
 import { useAuth } from "../../context/AuthContext";
-import { auth, db } from "../../firebase/firebase";
+import { db } from "../../firebase/firebase";
 
-import CustomModal from "../../components/CustomModals/CustomModal";
-import logo from "../../assets/images/header-logo.png"; // Adjust the path as necessary
-import UsersList from "./components/user-list";
-import { ChatListHeader } from "./components/chat-list-header";
 import { ChatListBottom } from "./components/chat-list-bottom";
+import { ChatListHeader } from "./components/chat-list-header";
+import UsersList from "./components/user-list";
 
 // Define a type for a user document
 export interface AppUser {
@@ -27,7 +22,6 @@ export interface AppUser {
   };
 }
 const ChatList = () => {
-  const navigate = useNavigate();
   const { currentUser } = useAuth();
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);

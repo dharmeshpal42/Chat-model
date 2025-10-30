@@ -1,6 +1,6 @@
 // src/pages/ChatRoom.tsx
 import { Box } from "@mui/material";
-import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch } from "firebase/firestore";
+import { addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
