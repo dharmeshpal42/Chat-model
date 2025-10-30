@@ -28,22 +28,25 @@ export const ChatArea = ({ loading, messages, onRequestEdit }: ChatAreaProps) =>
   return (
     <Box
       sx={{
-        position: "absolute",
+        position: "fixed",
         top: APP_BAR_HEIGHT,
-        bottom: INPUT_HEIGHT,
-        left: 0,
-        right: 0,
+        bottom: 0,
+        left: "50%",
+        transform: "translateX(-50%)",
+        maxWidth: "500px",
+        width: "100%",
         overflowY: "auto",
         p: 2,
+        pb: `calc(${INPUT_HEIGHT + 8}px + env(safe-area-inset-bottom))`,
         display: "flex",
         flexDirection: "column",
         gap: 1,
-        height: "calc(100vh - 124px)",
-        backgroundColor: "aliceblue",
+        backgroundColor: (theme) => (theme.palette.mode === "dark" ? theme.palette.background.default : "aliceblue"),
         scrollbarWidth: "none",
+        overscrollBehavior: "contain",
         "@media (max-width:600px)": {
-          height: "calc(100vh - 125px)",
           p: 1,
+          pb: `${INPUT_HEIGHT + 8}px`,
         },
         "@media (min-width:601px)": {
           p: 2,

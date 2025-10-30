@@ -193,8 +193,12 @@ const ChatRoom = () => {
         width: "100%",
         maxWidth: "500px",
         mx: "auto",
-        border: "1px solid #ccc",
-        height: "100%",
+        border: (theme) => `1px solid ${theme.palette.divider}`,
+        // Use dynamic viewport height to avoid Safari URL bar issues
+        height: "100dvh",
+        minHeight: "-webkit-fill-available",
+        overflow: "hidden",
+        backgroundColor: (theme) => (theme.palette.mode === "dark" ? theme.palette.background.default : "aliceblue"),
       }}
     >
       <ChatAreaHeader
@@ -225,7 +229,10 @@ const ChatRoom = () => {
           transform: "translateX(-50%)",
           maxWidth: "500px",
           width: "100%",
-          backgroundColor: "#fff",
+          backgroundColor: (theme) => theme.palette.background.paper,
+          borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+          zIndex: (theme) => theme.zIndex.appBar + 2,
+          paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
         <MessageInput

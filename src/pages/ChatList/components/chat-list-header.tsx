@@ -1,5 +1,6 @@
-import { AppBar, Toolbar, Box, Stack, Typography, IconButton, Avatar, Menu, MenuItem, Drawer, Switch, FormControlLabel, Divider } from "@mui/material";
+import { AppBar, Toolbar, Box, Stack, Typography, IconButton, Avatar, Menu, MenuItem, Drawer, Switch, FormControlLabel, Divider, Tooltip, ClickAwayListener } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import logo from "../../../assets/images/header-logo.png";
 import { useState } from "react";
 import { useAuth } from "../../../context/AuthContext";
@@ -11,10 +12,10 @@ import { useNavigate } from "react-router-dom";
 export const ChatListHeader = () => {
   const navigate = useNavigate();
   const { currentUser, showOldChats, setShowOldChatsRemote, themeMode, setThemeModeRemote } = useAuth();
-  console.log("🚀  ~ currentUser:", currentUser);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [showOldTooltipOpen, setShowOldTooltipOpen] = useState(false);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -74,6 +75,7 @@ export const ChatListHeader = () => {
             onClose={() => setAnchorEl(null)}
             anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
             transformOrigin={{ vertical: "top", horizontal: "right" }}
+            MenuListProps={{ dense: true }}
           >
             <MenuItem
               onClick={() => {
@@ -180,30 +182,51 @@ export const ChatListHeader = () => {
             <FormControlLabel
               control={
                 <Switch
-                  checked={showOldChats}
-                  onChange={(e) => setShowOldChatsRemote(e.target.checked)}
-                />
-              }
-              label="Show old chats"
-            />
-            <FormControlLabel
-              control={
-                <Switch
                   checked={themeMode === "dark"}
                   onChange={(e) => setThemeModeRemote(e.target.checked ? "dark" : "light")}
                 />
               }
               label="Dark mode"
             />
-            <Typography
-              variant="caption"
-              color="text.secondary"
-            >
-              When enabled, chats will show all messages. When disabled, messages older than 24 hours are hidden.
-            </Typography>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showOldChats}
+                  onChange={(e) => setShowOldChatsRemote(e.target.checked)}
+                />
+              }
+              label={
+                <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
+                  <Typography component="span">Show old chats</Typography>
+                  <ClickAwayListener onClickAway={() => setShowOldTooltipOpen(false)}>
+                    <Tooltip
+                      title="When enabled, chats will show all messages. When disabled, messages older than 24 hours are hidden."
+                      arrow
+                      open={showOldTooltipOpen}
+                      disableFocusListener
+                      disableHoverListener
+                      disableTouchListener
+                    >
+                      <IconButton
+                        size="small"
+                        aria-label="Show info about 'Show old chats'"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowOldTooltipOpen((prev) => !prev);
+                        }}
+                        sx={{ ml: 0.5 }}
+                      >
+                        <InfoOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </ClickAwayListener>
+                </Box>
+              }
+            />
           </Box>
         </Box>
       </Drawer>
+      {/* Tooltip is attached to the info icon; no Popover needed */}
     </AppBar>
   );
 };

@@ -123,9 +123,29 @@ const ChatList = () => {
   }, [currentUser?.uid]);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", margin: "0 auto", height: "100vh", maxWidth: "500px", width: "100%" }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        margin: "0 auto",
+        // Use dynamic viewport units to handle Safari's URL bar
+        height: "100dvh",
+        // Fallback for older iOS Safari
+        minHeight: "-webkit-fill-available",
+        maxWidth: "500px",
+        width: "100%",
+        overflow: "hidden",
+      }}
+    >
       <ChatListHeader />
-      <UsersList loading={loading} users={users} unseenMessageCounts={unseenMessageCounts} />
+      {/* Middle scrollable area */}
+      <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+        <UsersList
+          loading={loading}
+          users={users}
+          unseenMessageCounts={unseenMessageCounts}
+        />
+      </Box>
       <ChatListBottom />
     </Box>
   );

@@ -73,13 +73,39 @@ const MessageInput = React.forwardRef<HTMLInputElement, MessageInputProps>(({ on
         onChange={handleChange}
         onKeyDown={handleKeyPress}
         size="small"
-        sx={{ mr: 1, "& .MuiOutlinedInput-root": { borderRadius: "25px" } }}
+        sx={{
+          mr: 1,
+          "& .MuiOutlinedInput-root": {
+            borderRadius: "25px",
+            // Text color in dark mode
+            color: (theme) => (theme.palette.mode === "dark" ? theme.palette.common.white : "inherit"),
+            // Input text
+            "& .MuiInputBase-input": {
+              color: (theme) => (theme.palette.mode === "dark" ? theme.palette.common.white : "inherit"),
+              "&::placeholder": {
+                color: (theme) => (theme.palette.mode === "dark" ? theme.palette.common.white : undefined),
+                opacity: 0.7,
+              },
+            },
+            // Default outline
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderColor: (theme) => (theme.palette.mode === "dark" ? theme.palette.common.white : undefined),
+            },
+            // Focused outline
+            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderColor: (theme) => (theme.palette.mode === "dark" ? theme.palette.common.white : undefined),
+              borderWidth: (theme) => (theme.palette.mode === "dark" ? 2 : undefined),
+            },
+          },
+        }}
         onBlur={() => onTypingChange?.(false)}
         inputRef={inputRef}
       />
       <IconButton
-        color="primary"
         onClick={handleSend}
+        sx={{
+          color: (theme) => (theme.palette.mode === "dark" ? theme.palette.common.white : theme.palette.primary.main),
+        }}
       >
         <SendIcon />
       </IconButton>

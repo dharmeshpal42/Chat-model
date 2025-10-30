@@ -21,8 +21,11 @@ export const ChatAreaHeader = ({ chatName, chatPhotoUrl, isTyping = false, lastS
           transform: "translateX(-50%)",
           maxWidth: "500px",
           width: "100%",
+          paddingTop: "env(safe-area-inset-top)",
           borderBottomLeftRadius: "10px",
           borderBottomRightRadius: "10px",
+          zIndex: (theme) => theme.zIndex.appBar + 1,
+          boxShadow: "unset",
         }}
       >
         <Toolbar
@@ -41,7 +44,7 @@ export const ChatAreaHeader = ({ chatName, chatPhotoUrl, isTyping = false, lastS
             <Avatar
               src={chatPhotoUrl}
               alt={chatName}
-              sx={{ mr: 1, border: "2px solid white" }}
+              sx={{ mr: 1, border: "2px solid white", height: "50px", width: "50px" }}
             />
             <Box sx={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
               <Typography

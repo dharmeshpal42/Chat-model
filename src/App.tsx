@@ -31,6 +31,61 @@ const AppThemed = () => {
           secondary: { main: "#4caf50" },
         },
         shape: { borderRadius: 10 },
+        components: {
+          MuiOutlinedInput: {
+            styleOverrides: {
+              root: {
+                ...(themeMode === "dark"
+                  ? {
+                      color: "#fff",
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#fff",
+                      },
+                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#fff",
+                        borderWidth: 2,
+                      },
+                      "& .MuiInputBase-input": {
+                        color: "#fff",
+                        "&::placeholder": {
+                          color: "#fff",
+                          opacity: 0.7,
+                        },
+                      },
+                    }
+                  : {}),
+              },
+            },
+          },
+          MuiInputLabel: {
+            styleOverrides: {
+              root: {
+                ...(themeMode === "dark"
+                  ? {
+                      color: "#fff",
+                      "&.Mui-focused": {
+                        color: "#fff",
+                      },
+                    }
+                  : {}),
+              },
+            },
+          },
+          MuiFormLabel: {
+            styleOverrides: {
+              root: {
+                ...(themeMode === "dark"
+                  ? {
+                      color: "#fff",
+                      "&.Mui-focused": {
+                        color: "#fff",
+                      },
+                    }
+                  : {}),
+              },
+            },
+          },
+        },
       }),
     [themeMode]
   );
