@@ -79,8 +79,6 @@ const ChatList = () => {
           setUsers(partners);
           setLoading(false);
 
-          // Setup unseen message listeners per chat
-          // First, clear any previous listeners
           unsubscribes.forEach((u) => u());
           unsubscribes.length = 0;
 
