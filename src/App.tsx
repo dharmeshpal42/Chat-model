@@ -1,6 +1,7 @@
 // src/App.tsx
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { SnackbarProvider } from "notistack";
 import { ReactNode, useMemo } from "react";
 import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -93,36 +94,42 @@ const AppThemed = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Routes>
-        <Route
-          path="/login"
-          element={<Login />}
-        />
-        <Route
-          path="/signup"
-          element={<Signup />}
-        />
-        <Route
-          path="/forgot-password"
-          element={<ForgotPassword />}
-        />
-        <Route
-          path="/"
-          element={
-            <PrivateRoute>
-              <ChatList />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/chat/:chatId"
-          element={
-            <PrivateRoute>
-              <ChatRoom />
-            </PrivateRoute>
-          }
-        />
-      </Routes>
+      <SnackbarProvider
+        maxSnack={3}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        autoHideDuration={3000}
+      >
+        <Routes>
+          <Route
+            path="/login"
+            element={<Login />}
+          />
+          <Route
+            path="/signup"
+            element={<Signup />}
+          />
+          <Route
+            path="/forgot-password"
+            element={<ForgotPassword />}
+          />
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <ChatList />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/chat/:chatId"
+            element={
+              <PrivateRoute>
+                <ChatRoom />
+              </PrivateRoute>
+            }
+          />
+        </Routes>
+      </SnackbarProvider>
     </ThemeProvider>
   );
 };

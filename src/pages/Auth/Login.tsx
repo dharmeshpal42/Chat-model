@@ -6,6 +6,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { auth } from "../../firebase/firebase";
 import logo from "../../assets/images/header-logo.png";
+import { useSnackbar } from "notistack";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -13,15 +14,17 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const { enqueueSnackbar } = useSnackbar();
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      enqueueSnackbar("Logged in successfully", { variant: "success" });
       navigate("/");
     } catch (error: any) {
-      alert(error.message);
+      enqueueSnackbar(error?.message || "Failed to login", { variant: "error" });
     } finally {
       setLoading(false);
     }
