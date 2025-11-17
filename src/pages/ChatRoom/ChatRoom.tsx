@@ -34,9 +34,8 @@ const ChatRoom = () => {
   const [otherUserLastSeenMs, setOtherUserLastSeenMs] = useState<number | null>(null);
   const [inputText, setInputText] = useState("");
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
-  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const { requestNotificationPermission, showNotification } = useNotifications();
+  const { showNotification } = useNotifications();
   const prevMessagesLength = useRef(0);
 
   // Show notification for new messages
@@ -57,29 +56,6 @@ const ChatRoom = () => {
     }
     prevMessagesLength.current = messages.length;
   }, [messages, currentUser, showNotification]);
-
-  const handleEnableNotifications = useCallback(async () => {
-    const granted = await requestNotificationPermission();
-    setShowNotificationPrompt(!granted);
-    if (granted) {
-      showNotification("Notifications enabled", {
-        body: "You will now receive notifications for new messages",
-      });
-    }
-  }, [requestNotificationPermission, showNotification]);
-
-  // Check and request notification permission when component mounts
-  useEffect(() => {
-    const checkNotificationPermission = async () => {
-      const granted = await requestNotificationPermission();
-      setShowNotificationPrompt(!granted);
-    };
-
-    // Only check if notifications are supported
-    if ("Notification" in window) {
-      checkNotificationPermission();
-    }
-  }, [requestNotificationPermission]);
 
   useEffect(() => {
     if (!chatId || !currentUser?.uid) return;
@@ -241,28 +217,6 @@ const ChatRoom = () => {
         backgroundColor: (theme) => (theme.palette.mode === "dark" ? theme.palette.background.default : "aliceblue"),
       }}
     >
-      <Snackbar
-        open={showNotificationPrompt}
-        autoHideDuration={6000}
-        onClose={() => setShowNotificationPrompt(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setShowNotificationPrompt(false)}
-          severity="info"
-          action={
-            <Button
-              color="inherit"
-              size="small"
-              onClick={handleEnableNotifications}
-            >
-              Enable
-            </Button>
-          }
-        >
-          Enable notifications to receive updates when you receive new messages
-        </Alert>
-      </Snackbar>
       <ChatAreaHeader
         chatName={chatName}
         chatPhotoUrl={chatPhotoUrl}
