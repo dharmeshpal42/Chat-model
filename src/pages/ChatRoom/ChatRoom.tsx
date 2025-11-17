@@ -1,8 +1,9 @@
 // src/pages/ChatRoom.tsx
-import { Box } from "@mui/material";
+import { Box, Button, Snackbar, Alert } from "@mui/material";
 import { addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch } from "firebase/firestore";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
+import { useNotifications } from "../../hooks/useNotifications";
 
 import MessageInput from "../../components/MessageInput";
 import { useAuth } from "../../context/AuthContext";
@@ -33,7 +34,52 @@ const ChatRoom = () => {
   const [otherUserLastSeenMs, setOtherUserLastSeenMs] = useState<number | null>(null);
   const [inputText, setInputText] = useState("");
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const { requestNotificationPermission, showNotification } = useNotifications();
+  const prevMessagesLength = useRef(0);
+
+  // Show notification for new messages
+  useEffect(() => {
+    if (messages.length > 0 && messages.length > prevMessagesLength.current) {
+      const lastMessage = messages[messages.length - 1];
+
+      // Only show notification if:
+      // 1. The message is not from the current user
+      // 2. The window is not focused
+      if (lastMessage.senderId !== currentUser?.uid && !document.hasFocus()) {
+        showNotification(`New message from ${lastMessage.senderName || "Someone"}`, {
+          body: lastMessage.text,
+          icon: lastMessage.avatar,
+          tag: `message-${lastMessage.id}`,
+        });
+      }
+    }
+    prevMessagesLength.current = messages.length;
+  }, [messages, currentUser, showNotification]);
+
+  const handleEnableNotifications = useCallback(async () => {
+    const granted = await requestNotificationPermission();
+    setShowNotificationPrompt(!granted);
+    if (granted) {
+      showNotification("Notifications enabled", {
+        body: "You will now receive notifications for new messages",
+      });
+    }
+  }, [requestNotificationPermission, showNotification]);
+
+  // Check and request notification permission when component mounts
+  useEffect(() => {
+    const checkNotificationPermission = async () => {
+      const granted = await requestNotificationPermission();
+      setShowNotificationPrompt(!granted);
+    };
+
+    // Only check if notifications are supported
+    if ("Notification" in window) {
+      checkNotificationPermission();
+    }
+  }, [requestNotificationPermission]);
 
   useEffect(() => {
     if (!chatId || !currentUser?.uid) return;
@@ -189,18 +235,34 @@ const ChatRoom = () => {
   return (
     <Box
       sx={{
-        position: "relative",
-        width: "100%",
-        maxWidth: "500px",
-        mx: "auto",
-        border: (theme) => `1px solid ${theme.palette.divider}`,
-        // Use dynamic viewport height to avoid Safari URL bar issues
-        height: "100dvh",
-        minHeight: "-webkit-fill-available",
-        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
         backgroundColor: (theme) => (theme.palette.mode === "dark" ? theme.palette.background.default : "aliceblue"),
       }}
     >
+      <Snackbar
+        open={showNotificationPrompt}
+        autoHideDuration={6000}
+        onClose={() => setShowNotificationPrompt(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setShowNotificationPrompt(false)}
+          severity="info"
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              onClick={handleEnableNotifications}
+            >
+              Enable
+            </Button>
+          }
+        >
+          Enable notifications to receive updates when you receive new messages
+        </Alert>
+      </Snackbar>
       <ChatAreaHeader
         chatName={chatName}
         chatPhotoUrl={chatPhotoUrl}
