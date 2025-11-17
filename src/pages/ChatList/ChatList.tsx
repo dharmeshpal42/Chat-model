@@ -1,6 +1,6 @@
 // src/pages/ChatList.tsx
 import { Box } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import { collection, doc, getDoc, onSnapshot, query, where } from "firebase/firestore";
 import { useAuth } from "../../context/AuthContext";
@@ -27,6 +27,58 @@ const ChatList = () => {
   const [loading, setLoading] = useState(true);
 
   const [unseenMessageCounts, setUnseenMessageCounts] = useState<{ [key: string]: number }>({});
+  const [userNames, setUserNames] = useState<{ [key: string]: string }>({});
+  const prevUnseenCounts = useRef<{ [key: string]: number }>({});
+
+  // Request notification permission on component mount
+  useEffect(() => {
+    if ('Notification' in window) {
+      Notification.requestPermission().then(permission => {
+        console.log('Notification permission:', permission);
+      });
+    }
+  }, []);
+
+  // Show notification when new messages arrive
+  const showNotification = (senderName: string, message: string) => {
+    // Don't show notification if the window is in focus
+    if (document.hasFocus()) return;
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const notification = new Notification(`New message from ${senderName}`, {
+        body: message,
+        icon: '/logo192.png' // Make sure to have this icon in your public folder
+      });
+
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+      };
+    }
+  };
+
+  // Update user names mapping when users change
+  useEffect(() => {
+    const names: { [key: string]: string } = {};
+    users.forEach(user => {
+      names[user.id] = user.name;
+    });
+    setUserNames(names);
+  }, [users]);
+
+  // Track previous unseen counts to detect new messages
+  useEffect(() => {
+    // Check for new messages and show notifications
+    Object.entries(unseenMessageCounts).forEach(([userId, count]) => {
+      const prevCount = prevUnseenCounts.current[userId] || 0;
+      if (count > prevCount && userNames[userId]) {
+        showNotification(userNames[userId], 'You have new messages');
+      }
+    });
+    
+    // Update the previous counts
+    prevUnseenCounts.current = { ...unseenMessageCounts };
+  }, [unseenMessageCounts, userNames]);
 
   useEffect(() => {
     if (!currentUser?.uid) {
