@@ -32,6 +32,7 @@ export const ChatArea = ({ loading, messages, onRequestEdit }: ChatAreaProps) =>
         top: APP_BAR_HEIGHT,
         bottom: 0,
         left: "50%",
+        height: "87vh",
         transform: "translateX(-50%)",
         maxWidth: "500px",
         width: "100%",
@@ -58,7 +59,11 @@ export const ChatArea = ({ loading, messages, onRequestEdit }: ChatAreaProps) =>
           <CircularProgress />
         </Box>
       ) : messages.length === 0 ? (
-        <Typography align="center" color="text.secondary" sx={{ mt: 2 }}>
+        <Typography
+          align="center"
+          color="text.secondary"
+          sx={{ mt: 2 }}
+        >
           Start a new conversation!
         </Typography>
       ) : (
@@ -84,7 +89,10 @@ export const ChatArea = ({ loading, messages, onRequestEdit }: ChatAreaProps) =>
             <React.Fragment key={dateKey}>
               {/* Date Divider */}
               <Divider>
-                <Typography variant="caption" color="text.secondary">
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
                   {dateLabel}
                 </Typography>
               </Divider>
