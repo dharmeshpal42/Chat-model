@@ -1,7 +1,7 @@
 // src/pages/ChatRoom.tsx
-import { Box, Button, Snackbar, Alert } from "@mui/material";
+import { Box } from "@mui/material";
 import { addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch } from "firebase/firestore";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useNotifications } from "../../hooks/useNotifications";
 
@@ -213,7 +213,9 @@ const ChatRoom = () => {
       sx={{
         display: "flex",
         flexDirection: "column",
-        height: "100vh",
+        height: "100dvh", // use dvh for mobile
+        maxWidth: "500px",
+        margin: "0 auto",
         backgroundColor: (theme) => (theme.palette.mode === "dark" ? theme.palette.background.default : "aliceblue"),
       }}
     >
@@ -239,11 +241,6 @@ const ChatRoom = () => {
       />
       <Box
         sx={{
-          position: "fixed",
-          bottom: 0,
-          left: "50%",
-          transform: "translateX(-50%)",
-          maxWidth: "500px",
           width: "100%",
           backgroundColor: (theme) => theme.palette.background.paper,
           borderTop: (theme) => `1px solid ${theme.palette.divider}`,

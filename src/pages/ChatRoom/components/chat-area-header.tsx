@@ -14,18 +14,15 @@ export const ChatAreaHeader = ({ chatName, chatPhotoUrl, isTyping = false, lastS
   return (
     <>
       <AppBar
-        position="fixed"
+        position="static"
+        color="default"
         sx={{
-          top: 0,
-          left: "50%",
-          transform: "translateX(-50%)",
-          maxWidth: "500px",
-          width: "100%",
           paddingTop: "env(safe-area-inset-top)",
           borderBottomLeftRadius: "10px",
           borderBottomRightRadius: "10px",
           zIndex: (theme) => theme.zIndex.appBar + 1,
           boxShadow: "unset",
+          backgroundColor: (theme) => (theme.palette.mode === "dark" ? theme.palette.background.paper : "#fff"),
         }}
       >
         <Toolbar
