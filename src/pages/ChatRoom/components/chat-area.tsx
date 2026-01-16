@@ -4,8 +4,7 @@ import React, { useEffect, useRef } from "react";
 import MessageBubble from "../../../components/MessageBubble";
 import { useAuth } from "../../../context/AuthContext";
 import { Message } from "../ChatRoom";
-const APP_BAR_HEIGHT = 64;
-const INPUT_HEIGHT = 60;
+
 
 export interface ChatAreaProps {
   loading: boolean;
@@ -28,17 +27,10 @@ export const ChatArea = ({ loading, messages, onRequestEdit }: ChatAreaProps) =>
   return (
     <Box
       sx={{
-        position: "fixed",
-        top: APP_BAR_HEIGHT,
-        bottom: 0,
-        left: "50%",
-        height: "87vh",
-        transform: "translateX(-50%)",
-        maxWidth: "500px",
-        width: "100%",
+        flex: 1,
         overflowY: "auto",
+        minHeight: 0, // critical for flex scrolling
         p: 2,
-        pb: `calc(${INPUT_HEIGHT + 8}px + env(safe-area-inset-bottom))`,
         display: "flex",
         flexDirection: "column",
         gap: 1,
@@ -47,7 +39,6 @@ export const ChatArea = ({ loading, messages, onRequestEdit }: ChatAreaProps) =>
         overscrollBehavior: "contain",
         "@media (max-width:600px)": {
           p: 1,
-          pb: `${INPUT_HEIGHT + 8}px`,
         },
         "@media (min-width:601px)": {
           p: 2,
