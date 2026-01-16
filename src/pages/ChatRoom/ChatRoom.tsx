@@ -3,7 +3,6 @@ import { Box } from "@mui/material";
 import { addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useNotifications } from "../../hooks/useNotifications";
 
 import MessageInput from "../../components/MessageInput";
 import { useAuth } from "../../context/AuthContext";
@@ -35,27 +34,8 @@ const ChatRoom = () => {
   const [inputText, setInputText] = useState("");
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const { showNotification } = useNotifications();
-  const prevMessagesLength = useRef(0);
 
-  // Show notification for new messages
-  useEffect(() => {
-    if (messages.length > 0 && messages.length > prevMessagesLength.current) {
-      const lastMessage = messages[messages.length - 1];
 
-      // Only show notification if:
-      // 1. The message is not from the current user
-      // 2. The window is not focused
-      if (lastMessage.senderId !== currentUser?.uid && !document.hasFocus()) {
-        showNotification(`New message from ${lastMessage.senderName || "Someone"}`, {
-          body: lastMessage.text,
-          icon: lastMessage.avatar,
-          tag: `message-${lastMessage.id}`,
-        });
-      }
-    }
-    prevMessagesLength.current = messages.length;
-  }, [messages, currentUser, showNotification]);
 
   useEffect(() => {
     if (!chatId || !currentUser?.uid) return;
