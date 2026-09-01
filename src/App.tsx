@@ -1,8 +1,7 @@
 // src/App.tsx
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-import { onMessage } from "firebase/messaging";
-import { SnackbarProvider, useSnackbar } from "notistack";
+import { SnackbarProvider } from "notistack";
 import { ReactNode, useEffect, useMemo } from "react";
 import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -13,7 +12,7 @@ import Login from "./pages/Auth/Login";
 import Signup from "./pages/Auth/Signup";
 import ChatList from "./pages/ChatList/ChatList";
 import ChatRoom from "./pages/ChatRoom/ChatRoom";
-import { generateToken, messaging } from "./firebase/firebase";
+import { generateToken } from "./firebase/firebase";
 
 interface PrivateRouteProps {
   children: ReactNode;
@@ -127,7 +126,6 @@ const AppThemed = () => {
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         autoHideDuration={3000}
       >
-        <NotificationListener />
         <Routes>
           <Route
             path="/login"
@@ -161,28 +159,6 @@ const AppThemed = () => {
       </SnackbarProvider>
     </ThemeProvider>
   );
-};
-
-// Shows an in-app toast when a push notification arrives while the tab is
-// in the foreground. Background/closed-app delivery is handled entirely by
-// public/sw.js (the Firebase Messaging background handler), independent of
-// this component.
-const NotificationListener = () => {
-  const { enqueueSnackbar } = useSnackbar();
-
-  useEffect(() => {
-    const msgInstance = messaging;
-    if (!msgInstance) return;
-
-    const unsubscribe = onMessage(msgInstance, (payload) => {
-      const { title, body } = payload.data || {};
-      enqueueSnackbar(body || title || "New Message", { variant: "info" });
-    });
-
-    return () => unsubscribe();
-  }, [enqueueSnackbar]);
-
-  return null;
 };
 
 const App = () => {
