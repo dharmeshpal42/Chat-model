@@ -34,12 +34,36 @@ const ChatRoom = () => {
   const [inputText, setInputText] = useState("");
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const latestMessagesRef = useRef<Message[]>([]);
 
   useEffect(() => {
     if (!chatId || !currentUser?.uid) return;
 
     let unsubscribeMessages: (() => void) | undefined;
     let unsubscribeUser: (() => void) | undefined;
+
+    // Only mark messages read while this tab is actually the one being
+    // looked at - a chat left open in a background/forgotten tab should not
+    // silently mark new messages as read for the whole account.
+    const markAsReadIfVisible = async () => {
+      if (document.visibilityState !== "visible") return;
+
+      const unreadMessages = latestMessagesRef.current.filter((msg) => msg.senderId !== currentUser.uid && !msg?.readBy.includes(currentUser.uid));
+      if (unreadMessages.length === 0) return;
+
+      const batch = writeBatch(db);
+      unreadMessages.forEach((msg) => {
+        const messageRef = doc(db, "chats", chatId, "messages", msg.id);
+        batch.update(messageRef, {
+          readBy: [...msg.readBy, currentUser.uid],
+        });
+      });
+      await batch.commit().catch((error) => {
+        console.error("Failed to update message read status:", error);
+      });
+    };
+
+    document.addEventListener("visibilitychange", markAsReadIfVisible);
 
     const fetchChatInfo = async () => {
       const otherUserId = chatId.split("-").find((id) => id !== currentUser?.uid);
@@ -93,22 +117,8 @@ const ChatRoom = () => {
       }
       setLoading(false);
 
-      // --- NEW LOGIC TO MARK MESSAGES AS READ ---
-      const unreadMessages = allMessages.filter((msg) => msg.senderId !== currentUser.uid && !msg?.readBy.includes(currentUser.uid));
-
-      if (unreadMessages.length > 0) {
-        const batch = writeBatch(db);
-        unreadMessages.forEach((msg) => {
-          const messageRef = doc(db, "chats", chatId, "messages", msg.id);
-          batch.update(messageRef, {
-            readBy: [...msg.readBy, currentUser.uid],
-          });
-        });
-        await batch.commit().catch((error) => {
-          console.error("Failed to update message read status:", error);
-        });
-      }
-      // --- END OF NEW LOGIC ---
+      latestMessagesRef.current = allMessages;
+      await markAsReadIfVisible();
     });
 
     // Re-apply 24h filter every 1 minute
@@ -118,6 +128,7 @@ const ChatRoom = () => {
     }, 60 * 1000);
 
     return () => {
+      document.removeEventListener("visibilitychange", markAsReadIfVisible);
       if (unsubscribeMessages) unsubscribeMessages();
       if (unsubscribeUser) unsubscribeUser();
       clearInterval(interval);
