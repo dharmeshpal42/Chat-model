@@ -35,8 +35,6 @@ const ChatRoom = () => {
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-
-
   useEffect(() => {
     if (!chatId || !currentUser?.uid) return;
 
@@ -153,23 +151,15 @@ const ChatRoom = () => {
         lastMessage: {
           text: text.slice(0, 200),
           senderId: currentUser.uid,
+          senderName: currentUser.displayName,
           timestamp: serverTimestamp(),
         },
       },
-      { merge: true }
+      { merge: true },
     );
 
-    if (editingMessage) {
-      // Update existing message
-      const msgRef = doc(db, "chats", chatId!, "messages", editingMessage.id);
-      await updateDoc(msgRef, {
-        text,
-        edited: true,
-        updatedAt: serverTimestamp(),
-      });
-      setEditingMessage(null);
-    } else {
-      // Add a new message
+    // Add a new message if not editing
+    if (!editingMessage) {
       await addDoc(collection(db, "chats", chatId!, "messages"), {
         senderId: currentUser.uid,
         text,
@@ -178,6 +168,15 @@ const ChatRoom = () => {
         senderName: currentUser.displayName,
         readBy: [currentUser.uid],
       });
+    } else {
+      // Update existing message
+      const msgRef = doc(db, "chats", chatId!, "messages", editingMessage.id);
+      await updateDoc(msgRef, {
+        text,
+        edited: true,
+        updatedAt: serverTimestamp(),
+      });
+      setEditingMessage(null);
     }
 
     // clear input

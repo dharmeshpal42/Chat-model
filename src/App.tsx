@@ -1,16 +1,18 @@
 // src/App.tsx
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-import { SnackbarProvider } from "notistack";
-import { ReactNode, useMemo } from "react";
-import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import { collection, onSnapshot, query, Timestamp, where } from "firebase/firestore";
+import { SnackbarProvider, useSnackbar } from "notistack";
+import { ReactNode, useEffect, useMemo, useRef } from "react";
+import { Navigate, Route, BrowserRouter as Router, Routes, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
-import ChatList from "./pages/ChatList/ChatList";
-import ChatRoom from "./pages/ChatRoom/ChatRoom";
+import ForgotPassword from "./pages/Auth/ForgotPassword";
 import Login from "./pages/Auth/Login";
 import Signup from "./pages/Auth/Signup";
-import ForgotPassword from "./pages/Auth/ForgotPassword";
+import ChatList from "./pages/ChatList/ChatList";
+import ChatRoom from "./pages/ChatRoom/ChatRoom";
+import { db, requestNotificationPermission } from "./firebase/firebase";
 
 interface PrivateRouteProps {
   children: ReactNode;
@@ -22,7 +24,26 @@ const PrivateRoute = ({ children }: PrivateRouteProps) => {
 };
 
 const AppThemed = () => {
-  const { themeMode } = useAuth();
+  const { themeMode, currentUser } = useAuth();
+
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    // Attempt immediate permission request
+    requestNotificationPermission();
+
+    // Fallback: Trigger on first click if permission is still 'default'
+    // (some browsers require a user gesture before prompting)
+    const handleFirstClick = () => {
+      if ("Notification" in window && Notification.permission === "default") {
+        requestNotificationPermission();
+      }
+      window.removeEventListener("click", handleFirstClick);
+    };
+    window.addEventListener("click", handleFirstClick);
+    return () => window.removeEventListener("click", handleFirstClick);
+  }, [currentUser]);
+
   const theme = useMemo(
     () =>
       createTheme({
@@ -88,7 +109,7 @@ const AppThemed = () => {
           },
         },
       }),
-    [themeMode]
+    [themeMode],
   );
 
   return (
@@ -99,6 +120,7 @@ const AppThemed = () => {
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         autoHideDuration={3000}
       >
+        <NotificationListener />
         <Routes>
           <Route
             path="/login"
@@ -132,6 +154,86 @@ const AppThemed = () => {
       </SnackbarProvider>
     </ThemeProvider>
   );
+};
+
+interface LastMessage {
+  text: string;
+  senderId: string;
+  senderName?: string;
+  timestamp?: Timestamp;
+}
+
+// Watches the current user's chats in Firestore and raises an in-app toast
+// plus a browser Notification when a new message arrives in a chat the
+// user isn't currently looking at. Only fires while the app tab is open.
+const NotificationListener = () => {
+  const { enqueueSnackbar } = useSnackbar();
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+  const lastSeenRef = useRef<Record<string, number>>({});
+  const isFirstSnapshotRef = useRef(true);
+
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    lastSeenRef.current = {};
+    isFirstSnapshotRef.current = true;
+
+    const chatsQuery = query(collection(db, "chats"), where("members", "array-contains", currentUser.uid));
+
+    const unsubscribe = onSnapshot(chatsQuery, (snapshot) => {
+      const isFirstSnapshot = isFirstSnapshotRef.current;
+      isFirstSnapshotRef.current = false;
+
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "removed") return;
+
+        const chatId = change.doc.id;
+        const lastMessage = change.doc.data().lastMessage as LastMessage | undefined;
+        if (!lastMessage) return;
+
+        const timestampMs = lastMessage.timestamp?.toMillis() ?? 0;
+        const previousTimestampMs = lastSeenRef.current[chatId];
+        lastSeenRef.current[chatId] = timestampMs;
+
+        // Skip the initial snapshot (existing chats) and stale/duplicate updates
+        if (isFirstSnapshot || (previousTimestampMs !== undefined && timestampMs <= previousTimestampMs)) return;
+        if (lastMessage.senderId === currentUser.uid) return;
+
+        const isViewingThisChat = window.location.pathname === `/chat/${chatId}` && document.visibilityState === "visible";
+        if (isViewingThisChat) return;
+
+        const title = lastMessage.senderName || "New Message";
+        enqueueSnackbar(`${title}: ${lastMessage.text}`, { variant: "info" });
+
+        if ("Notification" in window && Notification.permission === "granted") {
+          const notificationUrl = `${window.location.origin}/chat/${chatId}`;
+
+          // Prefer the service-worker path: it's what iOS Safari (PWA, 16.4+)
+          // requires, and it's more reliable across browsers generally.
+          if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.ready.then((registration) => {
+              registration.showNotification(title, {
+                body: lastMessage.text,
+                data: { url: notificationUrl },
+              });
+            });
+          } else {
+            const notification = new Notification(title, { body: lastMessage.text });
+            notification.onclick = () => {
+              window.focus();
+              navigate(`/chat/${chatId}`);
+              notification.close();
+            };
+          }
+        }
+      });
+    });
+
+    return () => unsubscribe();
+  }, [currentUser?.uid, enqueueSnackbar, navigate]);
+
+  return null;
 };
 
 const App = () => {

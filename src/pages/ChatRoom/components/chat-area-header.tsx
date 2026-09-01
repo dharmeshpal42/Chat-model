@@ -61,7 +61,7 @@ export const ChatAreaHeader = ({ chatName, chatPhotoUrl, isTyping = false, lastS
                 renderLastSeen() && (
                   <Typography
                     variant="caption"
-                    sx={{ color: "#ffffff99" }}
+                    sx={{ color: "black" }}
                   >
                     {renderLastSeen()}
                   </Typography>
