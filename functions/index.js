@@ -24,14 +24,20 @@ exports.sendMessageNotification = onDocumentCreated("chats/{chatId}/messages/{me
   const token = recipientSnap.data()?.fcmToken;
   if (!token) return;
 
-  const title = message.senderName || "New Message";
-  const body = typeof message.text === "string" ? message.text.slice(0, 120) : "You have a new message";
-
   try {
+    // Data-only message (no top-level "notification" field): some browsers
+    // auto-display a "notification" payload themselves *in addition to* our
+    // own onBackgroundMessage handler calling showNotification(), causing a
+    // duplicate. Data-only guarantees our code is the only thing that ever
+    // shows it, and also keeps the preview generic rather than leaking the
+    // message text/sender to the lock screen.
     await admin.messaging().send({
       token,
-      notification: { title, body },
-      data: { link: `/chat/${chatId}` },
+      data: {
+        title: "New Message",
+        body: "You have a new message",
+        link: `/chat/${chatId}`,
+      },
     });
   } catch (error) {
     console.error("Failed to send push notification:", error);
