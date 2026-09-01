@@ -19,8 +19,35 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-self.addEventListener("install", () => self.skipWaiting());
-self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+// Minimal app-shell cache: lets the installed PWA open (to a basic offline
+// notice) even with no network, and is required by some browsers'
+// "installable" criteria (an active fetch handler).
+const SHELL_CACHE = "chatthere-shell-v1";
+const SHELL_URL = "/";
+
+self.addEventListener("install", (event) => {
+  self.skipWaiting();
+  event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.add(SHELL_URL)));
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    Promise.all([
+      self.clients.claim(),
+      caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== SHELL_CACHE).map((key) => caches.delete(key)))),
+    ]),
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
+
+  // Network-first: chat data must always be fresh. Cache is only a fallback
+  // for the app shell when the network is unavailable.
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request).then((cached) => cached || caches.match(SHELL_URL))),
+  );
+});
 
 messaging.onBackgroundMessage((payload) => {
   console.log("[sw.js] Received background message", payload);
