@@ -36,6 +36,18 @@ const ChatRoom = () => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const latestMessagesRef = useRef<Message[]>([]);
 
+  // If this chat was opened directly (e.g. tapping a notification launches
+  // the PWA straight into /chat/:chatId, with no prior history), there's no
+  // "/" entry underneath it. Insert one so the hardware/gesture back button
+  // lands on the user list instead of exiting the app.
+  useEffect(() => {
+    if (!chatId) return;
+    if (window.history.length <= 1) {
+      window.history.replaceState(null, "", "/");
+      window.history.pushState(null, "", `/chat/${chatId}`);
+    }
+  }, [chatId]);
+
   useEffect(() => {
     if (!chatId || !currentUser?.uid) return;
 
