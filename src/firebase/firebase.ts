@@ -1,8 +1,7 @@
 import { getAnalytics, isSupported as isAnalyticsSupported } from "firebase/analytics";
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { doc, getFirestore, setDoc } from "firebase/firestore";
-import { getMessaging, getToken, isSupported as isMessagingSupported } from "firebase/messaging";
+import { getFirestore } from "firebase/firestore";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -22,21 +21,6 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-let messaging: ReturnType<typeof getMessaging> | undefined;
-
-// Defensive check for messaging support (required for insecure contexts/older browsers)
-isMessagingSupported()
-  .then((supported) => {
-    if (supported) {
-      messaging = getMessaging(app);
-    } else {
-      console.warn("Firebase Messaging is not supported in this environment (likely an insecure context or unsupported browser).");
-    }
-  })
-  .catch((err) => {
-    console.warn("Failed to check for Firebase Messaging support:", err);
-  });
-
 let analytics: ReturnType<typeof getAnalytics> | undefined;
 // Only initialize Analytics if supported (e.g., not on SSR)
 isAnalyticsSupported()
@@ -47,39 +31,19 @@ isAnalyticsSupported()
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-export const generateToken = async (userId?: string) => {
+export const requestNotificationPermission = async () => {
   if (!("Notification" in window)) {
     console.warn("This browser does not support notifications");
     return;
   }
-
-  if (!messaging) {
-    console.warn("Messaging is not initialized or supported. Skipping token generation.");
-    return;
-  }
-
-  try {
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") return;
-
-    // Reuse the app's own registered service worker (public/sw.js, which
-    // also carries the Firebase Messaging background handler) instead of
-    // letting getToken() try to auto-register the default file name.
-    const registration = "serviceWorker" in navigator ? await navigator.serviceWorker.ready : undefined;
-
-    const token = await getToken(messaging, {
-      vapidKey: process.env.REACT_APP_FIREBASE_VAPID_KEY || "",
-      serviceWorkerRegistration: registration,
-    });
-
-    if (userId && token) {
-      const userRef = doc(db, "users", userId);
-      await setDoc(userRef, { fcmToken: token }, { merge: true });
+  if (Notification.permission === "default") {
+    try {
+      await Notification.requestPermission();
+    } catch (error) {
+      console.error("Error requesting notification permission:", error);
     }
-  } catch (error) {
-    console.error("Error generating token:", error);
   }
 };
 
-export { analytics, auth, db, messaging };
+export { analytics, auth, db };
 export default app;
