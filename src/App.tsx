@@ -175,10 +175,8 @@ const NotificationListener = () => {
     if (!msgInstance) return;
 
     const unsubscribe = onMessage(msgInstance, (payload) => {
-      const { title, body } = payload.notification || {};
-      if (title || body) {
-        enqueueSnackbar(`${title || "New Message"}: ${body || ""}`, { variant: "info" });
-      }
+      const { title, body } = payload.data || {};
+      enqueueSnackbar(body || title || "New Message", { variant: "info" });
     });
 
     return () => unsubscribe();
