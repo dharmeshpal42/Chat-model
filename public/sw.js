@@ -51,10 +51,10 @@ self.addEventListener("fetch", (event) => {
 
 messaging.onBackgroundMessage((payload) => {
   console.log("[sw.js] Received background message", payload);
-  const link = payload.data?.link;
+  const { title, body, link } = payload.data || {};
 
-  self.registration.showNotification(payload.notification?.title || "New Message", {
-    body: payload.notification?.body,
+  self.registration.showNotification(title || "New Message", {
+    body: body || "You have a new message",
     data: { url: link },
   });
 });
