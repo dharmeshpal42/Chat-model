@@ -32,7 +32,7 @@ export const ChatAreaHeader = ({ chatName, chatPhotoUrl, isTyping = false, lastS
         >
           <IconButton
             color="inherit"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/")}
             size="small"
           >
             <ArrowBackIcon />
