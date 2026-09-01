@@ -95,7 +95,18 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
                 const md = d.data();
                 return md.senderId === otherId && Array.isArray(md.readBy) && !md.readBy.includes(currentUser.uid);
               }).length;
-              setUnseenMessageCounts((prev) => ({ ...prev, [otherId]: unseen }));
+
+              setUnseenMessageCounts((prev) => {
+                const previous = prev[otherId] ?? 0;
+                // Safari's Firestore listener can briefly reconnect and replay a
+                // stale/incomplete cached snapshot before the real server-confirmed
+                // one arrives. Only trust a decrease once it's server-confirmed, so
+                // that hiccup can't flash the badge to 0 and back.
+                if (unseen < previous && messagesSnapshot.metadata.fromCache) {
+                  return prev;
+                }
+                return { ...prev, [otherId]: unseen };
+              });
             });
             messageUnsubscribes.set(chatId, unsub);
           });
