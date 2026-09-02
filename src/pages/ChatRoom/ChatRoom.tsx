@@ -35,6 +35,8 @@ const ChatRoom = () => {
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const latestMessagesRef = useRef<Message[]>([]);
+  const [firstUnreadMessageId, setFirstUnreadMessageId] = useState<string | null>(null);
+  const hasCapturedFirstUnreadRef = useRef(false);
 
   // If this chat was opened directly (e.g. tapping a notification launches
   // the PWA straight into /chat/:chatId, with no prior history), there's no
@@ -50,6 +52,9 @@ const ChatRoom = () => {
 
   useEffect(() => {
     if (!chatId || !currentUser?.uid) return;
+
+    hasCapturedFirstUnreadRef.current = false;
+    setFirstUnreadMessageId(null);
 
     let unsubscribeMessages: (() => void) | undefined;
     let unsubscribeUser: (() => void) | undefined;
@@ -128,6 +133,15 @@ const ChatRoom = () => {
         setMessages(filtered);
       }
       setLoading(false);
+
+      // Capture, once, which message was the first unread one when this chat
+      // was opened - like WhatsApp's "Unread messages" divider. This must
+      // happen before markAsReadIfVisible() clears the read status.
+      if (!hasCapturedFirstUnreadRef.current) {
+        hasCapturedFirstUnreadRef.current = true;
+        const firstUnread = allMessages.find((msg) => msg.senderId !== currentUser.uid && !msg.readBy.includes(currentUser.uid));
+        if (firstUnread) setFirstUnreadMessageId(firstUnread.id);
+      }
 
       latestMessagesRef.current = allMessages;
       await markAsReadIfVisible();
@@ -230,6 +244,7 @@ const ChatRoom = () => {
       <ChatArea
         loading={loading}
         messages={messages}
+        firstUnreadMessageId={firstUnreadMessageId}
         onRequestEdit={(msg) => {
           // only allow editing own message (defensive; also enforced in MessageBubble)
           if (msg.senderId !== currentUser?.uid) return;
