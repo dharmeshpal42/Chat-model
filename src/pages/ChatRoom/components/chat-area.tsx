@@ -9,9 +9,10 @@ import { Message } from "../ChatRoom";
 export interface ChatAreaProps {
   loading: boolean;
   messages: Message[];
+  firstUnreadMessageId?: string | null;
   onRequestEdit?: (msg: Message) => void;
 }
-export const ChatArea = ({ loading, messages, onRequestEdit }: ChatAreaProps) => {
+export const ChatArea = ({ loading, messages, firstUnreadMessageId, onRequestEdit }: ChatAreaProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { currentUser } = useAuth();
@@ -90,12 +91,23 @@ export const ChatArea = ({ loading, messages, onRequestEdit }: ChatAreaProps) =>
 
               {/* Messages for this date */}
               {msgs.map((msg) => (
-                <MessageBubble
-                  key={msg.id}
-                  message={msg}
-                  isOwnMessage={msg.senderId === currentUser?.uid}
-                  onRequestEdit={onRequestEdit}
-                />
+                <React.Fragment key={msg.id}>
+                  {msg.id === firstUnreadMessageId && (
+                    <Divider sx={{ "&::before, &::after": { borderColor: "primary.main" } }}>
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "primary.main", fontWeight: 600 }}
+                      >
+                        Unread Messages
+                      </Typography>
+                    </Divider>
+                  )}
+                  <MessageBubble
+                    message={msg}
+                    isOwnMessage={msg.senderId === currentUser?.uid}
+                    onRequestEdit={onRequestEdit}
+                  />
+                </React.Fragment>
               ))}
             </React.Fragment>
           );
