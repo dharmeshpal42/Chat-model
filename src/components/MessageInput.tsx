@@ -103,6 +103,11 @@ const MessageInput = React.forwardRef<HTMLInputElement, MessageInputProps>(({ on
       />
       <IconButton
         onClick={handleSend}
+        // Prevent the button from taking focus away from the text field on
+        // click - that focus shift is what makes mobile browsers dismiss
+        // the keyboard on send. Tapping anywhere else (header, message
+        // list) is unaffected and still blurs/closes the keyboard normally.
+        onMouseDown={(e) => e.preventDefault()}
         sx={{
           color: (theme) => (theme.palette.mode === "dark" ? theme.palette.common.white : theme.palette.primary.main),
         }}
