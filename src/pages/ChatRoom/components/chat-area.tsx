@@ -13,8 +13,14 @@ export interface ChatAreaProps {
   isRecipientOnline?: boolean;
   onRequestEdit?: (msg: Message) => void;
   onReact?: (messageId: string, emoji: string) => void;
+  // Pass a value that changes whenever the keyboard opens/closes (e.g. the
+  // visualViewport-derived height from ChatRoom). Resizing the container
+  // doesn't move an already-scrolled-to-bottom position along with it, so
+  // without this the last message ends up hidden above the new fold right
+  // after the keyboard transition.
+  keyboardTrigger?: number;
 }
-export const ChatArea = ({ loading, messages, firstUnreadMessageId, isRecipientOnline, onRequestEdit, onReact }: ChatAreaProps) => {
+export const ChatArea = ({ loading, messages, firstUnreadMessageId, isRecipientOnline, onRequestEdit, onReact, keyboardTrigger }: ChatAreaProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastMessageIdRef = useRef<string | null>(null);
 
@@ -37,6 +43,14 @@ export const ChatArea = ({ loading, messages, firstUnreadMessageId, isRecipientO
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
+
+  // Re-pin to the bottom whenever the keyboard opens/closes - the container
+  // resizing doesn't carry an already-scrolled-to-bottom position along
+  // with it, so without this the last message ends up above the new fold.
+  useEffect(() => {
+    if (keyboardTrigger === undefined) return;
+    messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+  }, [keyboardTrigger]);
 
   return (
     <Box
