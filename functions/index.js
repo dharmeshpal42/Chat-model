@@ -1,4 +1,5 @@
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onValueWritten } = require("firebase-functions/v2/database");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
@@ -42,4 +43,26 @@ exports.sendMessageNotification = onDocumentCreated("chats/{chatId}/messages/{me
   } catch (error) {
     console.error("Failed to send push notification:", error);
   }
+});
+
+// Mirrors Realtime Database presence (status/{uid}, written client-side via
+// onDisconnect()) into Firestore's users/{uid}, so the rest of the app can
+// just read a plain `online` boolean without needing the RTDB SDK anywhere
+// else. RTDB is used only because its onDisconnect() is enforced server-side
+// - it fires even if the client crashes, which Firestore has no way to do.
+exports.mirrorPresence = onValueWritten("/status/{uid}", async (event) => {
+  const { uid } = event.params;
+  const status = event.data.after.val();
+  if (!status) return;
+
+  await admin
+    .firestore()
+    .doc(`users/${uid}`)
+    .set(
+      {
+        online: status.state === "online",
+        lastSeen: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
 });

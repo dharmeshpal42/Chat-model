@@ -10,7 +10,7 @@ import UsersList from "./components/user-list";
 export type { AppUser } from "../../context/ChatsContext";
 
 const ChatList = () => {
-  const { users, loading, unseenMessageCounts } = useChats();
+  const { users, loading, unseenMessageCounts, onlineUserIds, lastMessages } = useChats();
 
   return (
     <Box
@@ -34,6 +34,8 @@ const ChatList = () => {
           loading={loading}
           users={users}
           unseenMessageCounts={unseenMessageCounts}
+          onlineUserIds={onlineUserIds}
+          lastMessages={lastMessages}
         />
       </Box>
       <ChatListBottom />

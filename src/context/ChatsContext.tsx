@@ -15,10 +15,19 @@ export interface AppUser {
   };
 }
 
+export interface LastMessagePreview {
+  text: string;
+  senderId: string;
+  timestampMs: number;
+  isRead: boolean;
+}
+
 interface ChatsContextType {
   users: AppUser[];
   loading: boolean;
   unseenMessageCounts: { [key: string]: number };
+  onlineUserIds: Set<string>;
+  lastMessages: { [key: string]: LastMessagePreview };
 }
 
 const ChatsContext = createContext<ChatsContextType | null>(null);
@@ -31,6 +40,12 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [unseenMessageCounts, setUnseenMessageCounts] = useState<{ [key: string]: number }>({});
+  // Driven directly by Firestore's users/{uid}.online field, which a Cloud
+  // Function keeps accurate from Realtime Database's onDisconnect() - no
+  // client-side staleness timer needed, this updates the moment the server
+  // notices a real disconnect.
+  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+  const [lastMessages, setLastMessages] = useState<{ [key: string]: LastMessagePreview }>({});
 
   useEffect(() => {
     if (!currentUser?.uid) {
@@ -40,6 +55,7 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
 
     setLoading(true);
     const messageUnsubscribes = new Map<string, () => void>();
+    const userUnsubscribes = new Map<string, () => void>();
 
     const chatsQuery = query(collection(db, "chats"), where("members", "array-contains", currentUser.uid));
     const unsubscribeChats = onSnapshot(
@@ -96,6 +112,24 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
                 return md.senderId === otherId && Array.isArray(md.readBy) && !md.readBy.includes(currentUser.uid);
               }).length;
 
+              let latest: LastMessagePreview | null = null;
+              messagesSnapshot.docs.forEach((d) => {
+                const md = d.data();
+                const ts = md.timestamp?.toMillis?.() ?? 0;
+                if (!latest || ts > latest.timestampMs) {
+                  const readBy: string[] = Array.isArray(md.readBy) ? md.readBy : [];
+                  latest = {
+                    text: typeof md.text === "string" ? md.text : "",
+                    senderId: md.senderId,
+                    timestampMs: ts,
+                    isRead: readBy.some((uid) => uid !== md.senderId),
+                  };
+                }
+              });
+              if (latest) {
+                setLastMessages((prev) => ({ ...prev, [otherId]: latest as LastMessagePreview }));
+              }
+
               setUnseenMessageCounts((prev) => {
                 const previous = prev[otherId] ?? 0;
                 // Safari's Firestore listener can briefly reconnect and replay a
@@ -109,12 +143,40 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
               });
             });
             messageUnsubscribes.set(chatId, unsub);
+
+            if (!userUnsubscribes.has(otherId)) {
+              const userUnsub = onSnapshot(doc(db, "users", otherId), (userSnap) => {
+                const isOnline = Boolean(userSnap.data()?.online);
+                setOnlineUserIds((prev) => {
+                  const wasOnline = prev.has(otherId);
+                  if (isOnline === wasOnline) return prev;
+                  const next = new Set(prev);
+                  if (isOnline) next.add(otherId);
+                  else next.delete(otherId);
+                  return next;
+                });
+              });
+              userUnsubscribes.set(otherId, userUnsub);
+            }
           });
 
           messageUnsubscribes.forEach((unsub, chatId) => {
             if (!currentChatIds.has(chatId)) {
               unsub();
               messageUnsubscribes.delete(chatId);
+            }
+          });
+
+          userUnsubscribes.forEach((unsub, partnerId) => {
+            if (!partnerIds.has(partnerId)) {
+              unsub();
+              userUnsubscribes.delete(partnerId);
+              setOnlineUserIds((prev) => {
+                if (!prev.has(partnerId)) return prev;
+                const next = new Set(prev);
+                next.delete(partnerId);
+                return next;
+              });
             }
           });
         } catch (e) {
@@ -132,10 +194,12 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
       unsubscribeChats();
       messageUnsubscribes.forEach((unsub) => unsub());
       messageUnsubscribes.clear();
+      userUnsubscribes.forEach((unsub) => unsub());
+      userUnsubscribes.clear();
     };
   }, [currentUser?.uid]);
 
-  return <ChatsContext.Provider value={{ users, loading, unseenMessageCounts }}>{children}</ChatsContext.Provider>;
+  return <ChatsContext.Provider value={{ users, loading, unseenMessageCounts, onlineUserIds, lastMessages }}>{children}</ChatsContext.Provider>;
 };
 
 export const useChats = () => {
