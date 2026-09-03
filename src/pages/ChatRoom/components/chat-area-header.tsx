@@ -2,7 +2,19 @@ import { AppBar, Avatar, Box, IconButton, Toolbar, Typography } from "@mui/mater
 import { format, isToday, isYesterday } from "date-fns";
 import { ArrowBack as ArrowBackIcon } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-export const ChatAreaHeader = ({ chatName, chatPhotoUrl, isTyping = false, lastSeenMs = null }: { chatName: string; chatPhotoUrl: string; isTyping?: boolean; lastSeenMs?: number | null }) => {
+export const ChatAreaHeader = ({
+  chatName,
+  chatPhotoUrl,
+  isTyping = false,
+  lastSeenMs = null,
+  isOnline = false,
+}: {
+  chatName: string;
+  chatPhotoUrl: string;
+  isTyping?: boolean;
+  lastSeenMs?: number | null;
+  isOnline?: boolean;
+}) => {
   const navigate = useNavigate();
   const renderLastSeen = () => {
     if (!lastSeenMs) return null;
@@ -38,11 +50,28 @@ export const ChatAreaHeader = ({ chatName, chatPhotoUrl, isTyping = false, lastS
             <ArrowBackIcon />
           </IconButton>
           <Box sx={{ display: "flex", alignItems: "center", ml: { xs: 1, sm: 2 } }}>
-            <Avatar
-              src={chatPhotoUrl}
-              alt={chatName}
-              sx={{ mr: 1, border: "2px solid white", height: "50px", width: "50px" }}
-            />
+            <Box sx={{ position: "relative", mr: 1 }}>
+              <Avatar
+                src={chatPhotoUrl}
+                alt={chatName}
+                sx={{ border: "2px solid white", height: "50px", width: "50px" }}
+              />
+              {isOnline && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    bottom: 0,
+                    right: 0,
+                    width: 12,
+                    height: 12,
+                    borderRadius: "50%",
+                    backgroundColor: "#44b700",
+                    border: "2px solid white",
+                    boxShadow: "0 0 0 1px rgba(0,0,0,0.15)",
+                  }}
+                />
+              )}
+            </Box>
             <Box sx={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
               <Typography
                 variant="h6"
@@ -56,6 +85,13 @@ export const ChatAreaHeader = ({ chatName, chatPhotoUrl, isTyping = false, lastS
                   sx={{ color: "#e0f2f1" }}
                 >
                   typing...
+                </Typography>
+              ) : isOnline ? (
+                <Typography
+                  variant="caption"
+                  sx={{ color: "#44b700", fontWeight: 600 }}
+                >
+                  Online
                 </Typography>
               ) : (
                 renderLastSeen() && (

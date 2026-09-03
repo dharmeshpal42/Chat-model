@@ -1,6 +1,6 @@
 // src/pages/ChatRoom.tsx
 import { Box } from "@mui/material";
-import { addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch } from "firebase/firestore";
+import { addDoc, collection, deleteField, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -20,6 +20,7 @@ export interface Message {
   readBy: string[]; // Add a readBy field
   edited?: boolean;
   updatedAt?: Timestamp;
+  reactions?: Record<string, string>; // uid -> emoji, one reaction per user
 }
 
 const ChatRoom = () => {
@@ -31,6 +32,7 @@ const ChatRoom = () => {
   const [chatPhotoUrl, setChatPhotoUrl] = useState("");
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const [otherUserLastSeenMs, setOtherUserLastSeenMs] = useState<number | null>(null);
+  const [isOtherUserOnline, setIsOtherUserOnline] = useState(false);
   const [inputText, setInputText] = useState("");
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -92,6 +94,7 @@ const ChatRoom = () => {
             const data = userDoc.data() as any;
             setChatName(data.name);
             setChatPhotoUrl(data.avatar);
+            setIsOtherUserOnline(Boolean(data.online));
             const ls = data.lastSeen;
             if (ls && typeof ls.toDate === "function") {
               setOtherUserLastSeenMs(ls.toDate().getTime());
@@ -121,6 +124,7 @@ const ChatRoom = () => {
           readBy: data.readBy || [],
           edited: Boolean(data.edited),
           updatedAt: data.updatedAt,
+          reactions: data.reactions || undefined,
         };
       });
 
@@ -174,6 +178,15 @@ const ChatRoom = () => {
     });
     return () => unsub();
   }, [chatId, currentUser?.uid]);
+
+  const handleReact = async (messageId: string, emoji: string) => {
+    if (!currentUser || !chatId) return;
+    const existing = messages.find((m) => m.id === messageId)?.reactions?.[currentUser.uid];
+    const msgRef = doc(db, "chats", chatId, "messages", messageId);
+    await updateDoc(msgRef, {
+      [`reactions.${currentUser.uid}`]: existing === emoji ? deleteField() : emoji,
+    }).catch((error) => console.error("Failed to update reaction:", error));
+  };
 
   const handleSendMessage = async (text: string) => {
     if (text.trim() === "" || !currentUser) return;
@@ -240,11 +253,14 @@ const ChatRoom = () => {
         chatPhotoUrl={chatPhotoUrl}
         isTyping={otherUserTyping}
         lastSeenMs={otherUserLastSeenMs}
+        isOnline={isOtherUserOnline}
       />
       <ChatArea
         loading={loading}
         messages={messages}
         firstUnreadMessageId={firstUnreadMessageId}
+        isRecipientOnline={isOtherUserOnline}
+        onReact={handleReact}
         onRequestEdit={(msg) => {
           // only allow editing own message (defensive; also enforced in MessageBubble)
           if (msg.senderId !== currentUser?.uid) return;
