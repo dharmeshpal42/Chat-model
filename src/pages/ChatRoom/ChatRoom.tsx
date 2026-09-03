@@ -40,6 +40,40 @@ const ChatRoom = () => {
   const [firstUnreadMessageId, setFirstUnreadMessageId] = useState<string | null>(null);
   const hasCapturedFirstUnreadRef = useRef(false);
 
+  // iOS treats the keyboard differently in an installed/standalone PWA than
+  // in a regular Safari tab: 100dvh does NOT reliably shrink when the
+  // keyboard opens in standalone mode, so a pure-CSS layout can end up with
+  // the header and input fighting over space, or the input hiding behind
+  // the keyboard. window.visualViewport reports the *actual* visible area
+  // even when standalone-mode CSS units lie about it, so size the page from
+  // JS instead of trusting dvh alone.
+  //
+  // A `position: fixed` element is anchored to the *layout* viewport, not
+  // the *visual* viewport - and those two drift apart in Safari when the
+  // keyboard opens (the collapsing address bar shifts one relative to the
+  // other). Tracking only `height` left a gap; `offsetTop` is the missing
+  // piece that keeps this container's top edge glued to the visual
+  // viewport's actual top, closing that gap.
+  const [viewportHeight, setViewportHeight] = useState(() => window.visualViewport?.height ?? window.innerHeight);
+  const [viewportOffsetTop, setViewportOffsetTop] = useState(() => window.visualViewport?.offsetTop ?? 0);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleViewportChange = () => {
+      setViewportHeight(vv.height);
+      setViewportOffsetTop(vv.offsetTop);
+    };
+    vv.addEventListener("resize", handleViewportChange);
+    vv.addEventListener("scroll", handleViewportChange);
+    handleViewportChange();
+
+    return () => {
+      vv.removeEventListener("resize", handleViewportChange);
+      vv.removeEventListener("scroll", handleViewportChange);
+    };
+  }, []);
+
   // If this chat was opened directly (e.g. tapping a notification launches
   // the PWA straight into /chat/:chatId, with no prior history), there's no
   // "/" entry underneath it. Insert one so the hardware/gesture back button
@@ -229,8 +263,10 @@ const ChatRoom = () => {
       setEditingMessage(null);
     }
 
-    // clear input
-    setInputText("");
+    // Note: the input is already cleared synchronously by MessageInput's
+    // handleSend() the instant you tap send - clearing it again here, after
+    // these awaits resolve, would race with (and wipe out) whatever you've
+    // already started typing as your next message while this was in flight.
 
     // Update sender's lastSeen on send
     const meRef = doc(db, "users", currentUser.uid);
@@ -242,7 +278,14 @@ const ChatRoom = () => {
       sx={{
         display: "flex",
         flexDirection: "column",
-        height: "100dvh", // use dvh for mobile
+        // Anchored with position:fixed + the visualViewport-derived height
+        // (not 100dvh) so an installed iOS PWA can't let the document push
+        // this out from under the keyboard - see the effect above.
+        position: "fixed",
+        top: `${viewportOffsetTop}px`,
+        left: 0,
+        right: 0,
+        height: `${viewportHeight}px`,
         maxWidth: "500px",
         margin: "0 auto",
         backgroundColor: (theme) => (theme.palette.mode === "dark" ? theme.palette.background.default : "aliceblue"),
@@ -260,6 +303,7 @@ const ChatRoom = () => {
         messages={messages}
         firstUnreadMessageId={firstUnreadMessageId}
         isRecipientOnline={isOtherUserOnline}
+        keyboardTrigger={viewportHeight}
         onReact={handleReact}
         onRequestEdit={(msg) => {
           // only allow editing own message (defensive; also enforced in MessageBubble)
