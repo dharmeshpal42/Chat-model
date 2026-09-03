@@ -10,10 +10,13 @@ export interface ChatAreaProps {
   loading: boolean;
   messages: Message[];
   firstUnreadMessageId?: string | null;
+  isRecipientOnline?: boolean;
   onRequestEdit?: (msg: Message) => void;
+  onReact?: (messageId: string, emoji: string) => void;
 }
-export const ChatArea = ({ loading, messages, firstUnreadMessageId, onRequestEdit }: ChatAreaProps) => {
+export const ChatArea = ({ loading, messages, firstUnreadMessageId, isRecipientOnline, onRequestEdit, onReact }: ChatAreaProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastMessageIdRef = useRef<string | null>(null);
 
   const { currentUser } = useAuth();
   const getDateLabel = (date: Date) => {
@@ -21,8 +24,18 @@ export const ChatArea = ({ loading, messages, firstUnreadMessageId, onRequestEdi
     if (isYesterday(date)) return "Yesterday";
     return format(date, "MMMM d, yyyy"); // e.g. August 18, 2025
   };
+
+  // Only auto-scroll when a new message actually arrives at the end of the
+  // list - not on every update to the array (a reaction or edit on any
+  // existing message also produces a new `messages` reference, and jumping
+  // the view to the bottom for those is jarring, especially if you're
+  // scrolled up reading history).
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage && lastMessage.id !== lastMessageIdRef.current) {
+      lastMessageIdRef.current = lastMessage.id;
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   return (
@@ -106,6 +119,9 @@ export const ChatArea = ({ loading, messages, firstUnreadMessageId, onRequestEdi
                     message={msg}
                     isOwnMessage={msg.senderId === currentUser?.uid}
                     onRequestEdit={onRequestEdit}
+                    currentUserId={currentUser?.uid}
+                    onReact={onReact}
+                    isRecipientOnline={isRecipientOnline}
                   />
                 </React.Fragment>
               ))}

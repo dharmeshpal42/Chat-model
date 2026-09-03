@@ -1,8 +1,9 @@
 // src/context/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { auth, db } from "../firebase/firebase";
+import { auth, db, rtdb } from "../firebase/firebase";
 import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
+import { onDisconnect, onValue, ref, serverTimestamp as rtdbServerTimestamp, set } from "firebase/database";
 
 interface AuthContextType {
   currentUser: User | null;
@@ -66,6 +67,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsub();
+  }, [currentUser?.uid]);
+
+  // Presence: uses Realtime Database's onDisconnect(), which is a promise
+  // enforced by Firebase's own servers - it fires the moment the server
+  // detects the socket dropped (crash, force-close, killed process, lost
+  // network), not just on a graceful page unload. A client-only heartbeat
+  // can never do this: a crashed client can't run code to announce it's
+  // gone, so it could only ever time out. This writes to RTDB at
+  // status/{uid}; a Cloud Function (see functions/index.js) mirrors that
+  // into Firestore's users/{uid}.online so the rest of the app doesn't need
+  // to know Realtime Database exists.
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    const statusRef = ref(rtdb, `status/${currentUser.uid}`);
+    const connectedRef = ref(rtdb, ".info/connected");
+
+    const unsub = onValue(connectedRef, (snap) => {
+      if (snap.val() === false) return;
+      // (Re)connected: register the server-side "mark me offline" promise
+      // first, then mark ourselves online.
+      onDisconnect(statusRef)
+        .set({ state: "offline", last_changed: rtdbServerTimestamp() })
+        .then(() => {
+          set(statusRef, { state: "online", last_changed: rtdbServerTimestamp() });
+        });
+    });
+
+    return () => {
+      unsub();
+      // Graceful teardown (logout, or this effect re-running) - don't wait
+      // for the server to notice the disconnect.
+      set(statusRef, { state: "offline", last_changed: rtdbServerTimestamp() }).catch(() => undefined);
+    };
   }, [currentUser?.uid]);
 
   const setShowOldChatsRemote = useCallback(

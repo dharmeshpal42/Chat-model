@@ -56,7 +56,7 @@ const AppThemed = () => {
         palette: {
           mode: themeMode,
           primary: { main: "#1976d2" },
-          secondary: { main: "#4caf50" },
+          secondary: { main: "#1565c0" },
         },
         shape: { borderRadius: 10 },
         components: {

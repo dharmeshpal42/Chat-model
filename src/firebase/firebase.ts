@@ -1,6 +1,7 @@
 import { getAnalytics, isSupported as isAnalyticsSupported } from "firebase/analytics";
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getDatabase } from "firebase/database";
 import { doc, getFirestore, setDoc } from "firebase/firestore";
 import { getMessaging, getToken, isSupported as isMessagingSupported } from "firebase/messaging";
 // TODO: Add SDKs for Firebase products that you want to use
@@ -17,6 +18,7 @@ const firebaseConfig = {
   messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "",
   appId: process.env.REACT_APP_FIREBASE_APP_ID || "",
   measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || undefined,
+  databaseURL: process.env.REACT_APP_FIREBASE_DATABASE_URL || "",
 };
 
 // Initialize Firebase
@@ -46,6 +48,7 @@ isAnalyticsSupported()
   .catch(() => undefined);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const rtdb = getDatabase(app);
 
 export const generateToken = async (userId?: string) => {
   if (!("Notification" in window)) {
@@ -81,5 +84,5 @@ export const generateToken = async (userId?: string) => {
   }
 };
 
-export { analytics, auth, db, messaging };
+export { analytics, auth, db, messaging, rtdb };
 export default app;
